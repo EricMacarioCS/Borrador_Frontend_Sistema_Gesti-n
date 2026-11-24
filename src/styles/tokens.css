@@ -1,0 +1,53 @@
+/*
+ * Paleta y tipografía del sitio web, sin brillos ni animaciones: es una herramienta interna de trabajo.
+ * Los componentes usan estas variables, nunca colores sueltos.
+ */
+:root {
+  --navy-950: #0b1530;
+  --navy-900: #0f1c3a;
+  --navy-800: #142747;
+  --navy-700: #203b65;
+  --blue: #174ea6;
+  --blue-strong: #123b86;
+  --accent: #38bdf8;
+  --accent-soft: #e6f6fe;
+  --selection: #e9f4ff;
+  --violet: #7c5cff;
+  --ink: #0b1530;
+  --muted: #52627d;
+  --muted-on-dark: #c3d2e8;
+  --line: #dce5f0;
+  --line-strong: #c4d5ee;
+  --field-border: #8494ab;
+  --surface: #ffffff;
+  --surface-soft: #f4f7fc;
+  --background: #f4f7fc;
+
+  --success: #067647;
+  --success-soft: #e7f6ee;
+  --warning: #974006;
+  --warning-soft: #fff3e6;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --info: #174ea6;
+  --info-soft: #e9f4ff;
+
+  /* Series de las gráficas: boletos, alimentos y otros. */
+  --series-tickets: #174ea6;
+  --series-food: #f59e0b;
+  --series-other: #38bdf8;
+
+  --font-title: 'Montserrat Variable', 'Montserrat', system-ui, sans-serif;
+  --font-body: 'Inter Variable', 'Inter', system-ui, sans-serif;
+
+  --radius-s: 8px;
+  --radius-m: 10px;
+  --radius-l: 12px;
+  --radius-dialog: 16px;
+  --shadow-card: 0 1px 2px rgba(11, 21, 48, .06);
+  --shadow-float: 0 18px 44px rgba(11, 21, 48, .22);
+
+  --sidebar-width: 256px;
+  --topbar-height: 68px;
+  --page-gutter: clamp(16px, 2.6vw, 36px);
+}
