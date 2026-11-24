@@ -76,7 +76,7 @@ export const ScreeningDto = z.object({
   room: z.object({ id: z.string(), number: z.number().int().positive(), type: LabeledDto }),
   projection: LabeledDto, language: LabeledDto,
   date: BusinessDate, startTime: LocalTime, endTime: LocalTime, endsNextDay: z.boolean(),
-  isPresale: z.boolean(), active: z.boolean(), ticketsSold: z.number().int().min(0)
+  isPresale: z.boolean(), active: z.boolean(), hasTicketsSold: z.boolean()
 })
 
 export const SchedulePlanDto = z.object({
@@ -106,17 +106,11 @@ export const ProductDto = z.object({
 
 export const CatalogEntryDto = z.object({
   complexId: z.string(), version: Version, product: ProductDto, price: MoneyDto, available: z.boolean(),
-  optionSettings: z.array(z.object({ optionId: z.string(), active: z.boolean(), extra: MoneyDto })),
-  stock: z.number().min(0).nullable()
+  optionSettings: z.array(z.object({ optionId: z.string(), active: z.boolean(), extra: MoneyDto }))
 })
 
 export const PriceChangeDto = z.object({
   id: z.string(), productName: z.string(), previous: MoneyDto, current: MoneyDto, changedAt: Instant
-})
-
-export const StockMovementDto = z.object({
-  id: z.string(), productName: z.string(), before: z.number(), after: z.number(), reason: z.string(),
-  note: z.string(), author: z.string(), at: Instant
 })
 
 /* Tarifas y promociones */
@@ -148,36 +142,6 @@ export const ClubLevelDto = z.object({
   maxVisits: z.number().int().min(0).nullable(), pointsPercent: z.number().min(0), benefits: z.string()
 })
 
-/* Pedidos */
-
-export const OrderSummaryDto = z.object({
-  id: z.string(), ticketCode: z.string().nullable(), linkedTicketCode: z.string().nullable(), kind: z.string(),
-  status: z.string(), foodStatus: z.string().nullable(), channel: z.string(),
-  complex: z.object({ id: z.string(), name: z.string() }),
-  customer: z.object({ name: z.string(), email: z.string() }),
-  createdAt: Instant, total: MoneyDto
-})
-
-export const OrderPageDto = z.object({
-  items: z.array(OrderSummaryDto), total: z.number().int().min(0), page: z.number().int().min(1), pageSize: z.number().int().min(1)
-})
-
-export const OrderDetailDto = OrderSummaryDto.extend({
-  screening: z.object({
-    movieTitle: z.string(), date: BusinessDate, startTime: LocalTime, room: z.string(), projection: z.string(), language: z.string()
-  }).nullable(),
-  tickets: z.array(z.object({ seat: z.string(), ticketType: z.string(), price: MoneyDto })),
-  items: z.array(z.object({ name: z.string(), detail: z.string(), quantity: z.number().int().positive(), total: MoneyDto })),
-  pickup: z.enum(['before', 'during']).nullable(),
-  paymentMethod: z.string(),
-  totals: z.object({ subtotal: MoneyDto, discount: MoneyDto, serviceFee: MoneyDto, total: MoneyDto }),
-  promotionName: z.string().nullable(),
-  cancellation: z.object({ allowed: z.boolean(), reason: z.string().nullable(), affectedIds: z.array(z.string()) }),
-  refund: z.object({ status: z.string(), amount: MoneyDto }),
-  cancelReason: z.string().nullable(),
-  linkedOrders: z.array(z.object({ id: z.string(), ticketCode: z.string().nullable(), kind: z.string(), status: z.string() }))
-})
-
 /* Contenido */
 
 export const BannerDto = z.object({
@@ -192,7 +156,7 @@ export const PurchaseRulesDto = z.object({
   cancelMinutesBefore: z.number().int().min(0), scheduleDays: z.number().int().positive()
 })
 
-/* Empleados, reportes y actividad */
+/* Empleados y bitácora */
 
 export const RoleDto = z.object({
   id: z.string(), version: Version, name: z.string(), isManager: z.boolean(), responsibilities: z.string(), area: z.string()
@@ -202,11 +166,6 @@ export const EmployeeDto = z.object({
   id: z.string(), version: Version, firstName: z.string(), lastName: z.string(), secondLastName: z.string().nullable(),
   email: z.string().nullable(), phone: z.string().nullable(), birthDate: BusinessDate, hiredOn: BusinessDate,
   salary: MoneyDto, status: z.string(), complexId: z.string(), roleId: z.string()
-})
-
-export const DailySalesDto = z.object({
-  date: BusinessDate, complexId: z.string(), tickets: MoneyDto, food: MoneyDto, other: MoneyDto,
-  ticketCount: z.number().int().min(0), transactions: z.number().int().min(0)
 })
 
 export const ActivityDto = z.object({ id: z.string(), at: Instant, actor: z.string(), area: z.string(), summary: z.string() })
@@ -223,13 +182,10 @@ export type SchedulePlanJson = z.input<typeof SchedulePlanDto>
 export type ProductJson = z.input<typeof ProductDto>
 export type CatalogEntryJson = z.input<typeof CatalogEntryDto>
 export type PriceChangeJson = z.input<typeof PriceChangeDto>
-export type StockMovementJson = z.input<typeof StockMovementDto>
 export type TicketTypeJson = z.input<typeof TicketTypeDto>
 export type PriceSheetJson = z.input<typeof PriceSheetDto>
 export type PromotionJson = z.input<typeof PromotionDto>
 export type ClubLevelJson = z.input<typeof ClubLevelDto>
-export type OrderSummaryJson = z.input<typeof OrderSummaryDto>
-export type OrderDetailJson = z.input<typeof OrderDetailDto>
 export type BannerJson = z.input<typeof BannerDto>
 export type HomeJson = z.input<typeof HomeDto>
 export type FaqJson = z.input<typeof FaqDto>
@@ -237,5 +193,4 @@ export type PageJson = z.input<typeof PageDto>
 export type PurchaseRulesJson = z.input<typeof PurchaseRulesDto>
 export type RoleJson = z.input<typeof RoleDto>
 export type EmployeeJson = z.input<typeof EmployeeDto>
-export type DailySalesJson = z.input<typeof DailySalesDto>
 export type ActivityJson = z.input<typeof ActivityDto>

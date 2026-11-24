@@ -1,10 +1,8 @@
-/** Contenido del sitio, reglas de compra, empleados, roles, reportes y bitácora. */
+/** Contenido del sitio, reglas de compra, empleados, roles y bitácora. */
 import { addDays } from '@/shared/lib/datetime'
-import { SALES_SEEDS } from '../fixtures'
-import { hash } from '../seed'
-import type { BannerRec, EmployeeRec, MockState } from '../store'
+import type { BannerRec, EmployeeRec } from '../store'
 import {
-  body, cents, checkVersion, fail, integer, invalid, isoDate, list, logActivity, money, nextId, noContent, nullableText, ok, route,
+  body, cents, checkVersion, fail, integer, invalid, isoDate, list, logActivity, nextId, noContent, nullableText, ok, route,
   strings, text, type Context
 } from './core'
 import { employeeJson } from './views'
@@ -179,43 +177,7 @@ function saveRole(ctx: Context, id: string | null) {
 route('POST', '/roles', 'employees.manage', ctx => saveRole(ctx, null))
 route('PUT', '/roles/:id', 'employees.manage', ctx => saveRole(ctx, ctx.params[0]!))
 
-/* Reportes */
-
-// De domingo a sábado. El martes sube por el 2×1.
-const WEEKDAY_FACTORS = [1.3, 0.68, 1.12, 0.76, 0.84, 1.14, 1.42]
-
-/** Número estable entre -amount y +amount: la misma fecha siempre da las mismas cifras. */
-const vary = (key: string, amount: number) => 1 + ((hash(key) / 4294967295) * 2 - 1) * amount
-
-/** Ventas de un día completo de un complejo. Ficticias: no salen de los pedidos registrados. */
-export function salesFor(complexId: string, date: string) {
-  const seed = SALES_SEEDS[complexId] ?? { ticketsPerDay: 400, ticketPriceCents: 7500, foodPerTicketCents: 2800, otherPerTicketCents: 500 }
-  const time = Date.parse(`${date}T12:00:00Z`)
-  const years = (time - Date.parse('2026-01-01T12:00:00Z')) / 86_400_000 / 365
-  const expected = seed.ticketsPerDay * WEEKDAY_FACTORS[new Date(time).getUTCDay()]! * 1.06 ** years
-  const ticketCount = Math.round(expected * vary(`${complexId}|boletos|${date}`, 0.16))
-  // Importes al peso entero para que las sumas cuadren.
-  const pesos = (value: number) => Math.round(value / 100) * 100
-  return {
-    date, complexId, ticketCount,
-    tickets: money(pesos(ticketCount * seed.ticketPriceCents * vary(`${complexId}|precio|${date}`, 0.04))),
-    food: money(pesos(ticketCount * seed.foodPerTicketCents * vary(`${complexId}|alimentos|${date}`, 0.1))),
-    other: money(pesos(ticketCount * seed.otherPerTicketCents * vary(`${complexId}|otros|${date}`, 0.2))),
-    transactions: Math.round(ticketCount / (2.1 * vary(`${complexId}|operaciones|${date}`, 0.06)))
-  }
-}
-
-route('GET', '/reports/daily-sales', 'reports.view', ctx => {
-  const from = ctx.request.query.get('from') ?? fail(400, 'MALFORMED_REQUEST', 'Falta from.')
-  const to = ctx.request.query.get('to') ?? fail(400, 'MALFORMED_REQUEST', 'Falta to.')
-  const days = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1
-  if (!(days >= 1 && days <= 800)) fail(400, 'MALFORMED_REQUEST', 'Rango de fechas inválido.')
-  const complexes = visibleComplexes(ctx.state, ctx.user.complexIds)
-  const items = Array.from({ length: days }, (_, i) => addDays(from, i)).flatMap(date => complexes.map(id => salesFor(id, date)))
-  return ok({ items })
-})
-
-const visibleComplexes = (state: MockState, scope: string[] | null) => state.complexes.map(c => c.id).filter(id => scope === null || scope.includes(id))
+/* Bitácora */
 
 route('GET', '/activity', 'any', ctx => {
   const limit = Math.min(100, Math.max(1, Number(ctx.request.query.get('limit') ?? 20)))

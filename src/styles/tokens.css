@@ -33,9 +33,6 @@
   --info-soft: #e9f4ff;
 
   /* Series de las gráficas: boletos, alimentos y otros. */
-  --series-tickets: #174ea6;
-  --series-food: #f59e0b;
-  --series-other: #38bdf8;
 
   --font-title: 'Montserrat Variable', 'Montserrat', system-ui, sans-serif;
   --font-body: 'Inter Variable', 'Inter', system-ui, sans-serif;

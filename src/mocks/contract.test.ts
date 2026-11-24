@@ -103,8 +103,6 @@ describe('permisos y alcance por complejo', () => {
     const screenings = await manager.screenings.list({ from: today(), to: addDays(today(), 2) })
     expect(screenings.length).toBeGreaterThan(0)
     expect(new Set(screenings.map(s => s.complexId))).toEqual(new Set(['xal-centro', 'xal-centro-vip']))
-    const orders = await manager.orders.list({ page: 1, pageSize: 100 })
-    expect(orders.items.every(o => ['xal-centro', 'xal-centro-vip'].includes(o.complexId))).toBe(true)
     const entry = (await manager.products.catalog('ver-boulevard'))[0]!
     const error = await rejection(manager.products.saveCatalogEntry('ver-boulevard', entry.product.id, {
       version: entry.version, priceCents: entry.priceCents + 100, available: true, optionSettings: entry.optionSettings
@@ -166,7 +164,7 @@ describe('programación por lote', () => {
   it('mover una función a una sala ocupada da SCHEDULE_CONFLICT', async () => {
     const ports = await signedIn('admin-h')
     const tomorrow = addDays(today(), 1)
-    const list = (await ports.screenings.list({ from: tomorrow, to: tomorrow, complexId: 'xal-centro' })).filter(s => s.ticketsSold === 0)
+    const list = (await ports.screenings.list({ from: tomorrow, to: tomorrow, complexId: 'xal-centro' })).filter(s => !s.hasTicketsSold)
     const [first, second] = [list.find(s => s.roomNumber === 4)!, list.find(s => s.roomNumber === 5)!]
     const error = await rejection(ports.screenings.update(first.id, {
       version: first.version, roomId: second.roomId, date: second.date, startTime: second.startTime,
@@ -177,6 +175,26 @@ describe('programación por lote', () => {
 })
 
 describe('dulcería', () => {
+  it('marcar un producto como no disponible solo cambia ese complejo y queda en la bitácora', async () => {
+    const ports = await signedIn('admin-o')
+    const entry = (await ports.products.catalog('xal-centro')).find(e => e.product.id === 'p-3')!
+    expect(entry.available).toBe(true)
+    const updated = await ports.products.setAvailability('xal-centro', 'p-3', entry.version, false)
+    expect(updated).toMatchObject({ available: false, version: entry.version + 1, priceCents: entry.priceCents })
+    expect((await ports.products.catalog('ver-boulevard')).find(e => e.product.id === 'p-3')!.available).toBe(true)
+    expect((await ports.activity.list(1))[0]!.summary).toContain('no disponible')
+    // Con la versión vieja se rechaza: alguien más ya lo cambió.
+    expect((await rejection(ports.products.setAvailability('xal-centro', 'p-3', entry.version, true))).code).toBe('VERSION_CONFLICT')
+  })
+
+  it('un gerente no cambia la disponibilidad en un complejo ajeno', async () => {
+    const manager = await signedIn('gerente-c', MANAGER)
+    const own = (await manager.products.catalog('xal-centro'))[0]!
+    expect((await manager.products.setAvailability('xal-centro', own.product.id, own.version, !own.available)).available).toBe(!own.available)
+    const other = (await manager.products.catalog('ver-boulevard'))[0]!
+    expect((await rejection(manager.products.setAvailability('ver-boulevard', other.product.id, other.version, false))).code).toBe('FORBIDDEN')
+  })
+
   it('cambiar el precio en un complejo queda en el historial y no afecta a otro', async () => {
     const ports = await signedIn('admin-i')
     const entry = (await ports.products.catalog('xal-centro')).find(e => e.product.id === 'p-3')!
@@ -201,41 +219,23 @@ describe('dulcería', () => {
   })
 })
 
-describe('pedidos', () => {
-  async function cancellableWithFood(ports: Awaited<ReturnType<typeof signedIn>>) {
-    const page = await ports.orders.list({ kind: 'tickets', status: 'confirmed', page: 1, pageSize: 100 })
-    for (const summary of page.items) {
-      const detail = await ports.orders.get(summary.id)
-      if (detail.cancellation.allowed && detail.cancellation.affectedIds.length > 1) return detail
-    }
-    throw new Error('No hay pedidos cancelables con alimentos ligados')
+describe('funciones con boletos vendidos', () => {
+  async function soldScreening(ports: Awaited<ReturnType<typeof signedIn>>) {
+    const list = await ports.screenings.list({ from: addDays(today(), 1), to: addDays(today(), 2) })
+    return list.find(s => s.hasTicketsSold) ?? (() => { throw new Error('No hay funciones con boletos vendidos') })()
   }
 
-  it('cancelar boletos cancela sus alimentos no preparados y el reembolso termina después', async () => {
+  it('no se mueven, no se desactivan y no se retiran', async () => {
     const ports = await signedIn('admin-k')
-    const order = await cancellableWithFood(ports)
-    const key = crypto.randomUUID()
-    const cancelled = await ports.orders.cancel(order.id, 'Prueba', key)
-    expect(cancelled.status).toBe('refund-pending')
-    const linked = await ports.orders.get(order.cancellation.affectedIds[1]!)
-    expect(linked.status).toBe('refund-pending')
-    // Repetir con la misma clave no cancela dos veces.
-    expect((await ports.orders.cancel(order.id, 'Prueba', key)).id).toBe(order.id)
-    vi.setSystemTime(new Date(Date.now() + 5000))
-    expect((await ports.orders.get(order.id)).status).toBe('refunded')
+    const sold = await soldScreening(ports)
+    const base = { version: sold.version, roomId: sold.roomId, date: sold.date, startTime: sold.startTime, projection: sold.projection.code, language: sold.language.code, active: true }
+    expect((await rejection(ports.screenings.update(sold.id, { ...base, date: addDays(sold.date, 1) }))).code).toBe('RESOURCE_IN_USE')
+    expect((await rejection(ports.screenings.update(sold.id, { ...base, active: false }))).code).toBe('RESOURCE_IN_USE')
+    expect((await rejection(ports.screenings.remove([sold.id]))).code).toBe('RESOURCE_IN_USE')
   })
+})
 
-  it('a menos de 60 minutos de la función ya no se cancela', async () => {
-    const ports = await signedIn('admin-l')
-    const order = await cancellableWithFood(ports)
-    const target = zonedInstant(order.screening!.date, order.screening!.startTime).getTime() - 30 * 60_000
-    vi.setSystemTime(new Date(target))
-    // Si pasaron más de 12 horas la sesión anterior expiró (es absoluta): se entra de nuevo.
-    const again = await signedIn('admin-l2')
-    const error = await rejection(again.orders.cancel(order.id, 'Tarde', crypto.randomUUID()))
-    expect(error.code).toBe('CANCELLATION_WINDOW_CLOSED')
-  })
-
+describe('sesión vencida', () => {
   it('la sesión vence a las 12 horas aunque haya actividad', async () => {
     const ports = await signedIn('admin-n')
     vi.setSystemTime(new Date(Date.now() + 12 * 3600_000 + 60_000))

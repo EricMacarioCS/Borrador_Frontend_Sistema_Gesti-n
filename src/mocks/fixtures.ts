@@ -19,9 +19,8 @@ export const today = () => dateInZone(new Date(), TIME_ZONE)
 /* Usuarios de demostración. Solo existen en el simulador; el backend real usa su propio almacén de identidades. */
 
 const ALL: Permission[] = [
-  'dashboard.view', 'reports.view', 'movies.manage', 'screenings.manage', 'products.manage', 'inventory.adjust',
-  'content.manage', 'prices.manage', 'promotions.manage', 'orders.view', 'orders.manage', 'complexes.manage',
-  'employees.manage', 'settings.view'
+  'dashboard.view', 'movies.manage', 'screenings.manage', 'products.manage', 'content.manage', 'prices.manage',
+  'promotions.manage', 'complexes.manage', 'employees.manage', 'settings.view'
 ]
 
 export const USERS = [
@@ -32,7 +31,7 @@ export const USERS = [
   {
     id: 'u-2', name: 'Luis Ramírez', email: 'gerente.xalapa@cinepolis.test', password: 'Demo-2026',
     roleName: 'Gerente de complejo',
-    permissions: ['dashboard.view', 'reports.view', 'screenings.manage', 'products.manage', 'inventory.adjust', 'orders.view', 'orders.manage', 'settings.view'] as Permission[],
+    permissions: ['dashboard.view', 'screenings.manage', 'products.manage', 'settings.view'] as Permission[],
     complexIds: ['xal-centro', 'xal-centro-vip'] as string[] | null
   }
 ]
@@ -170,7 +169,7 @@ interface OptionSeed { name: string; extraCents?: number; isDefault?: boolean }
 interface RuleSeed { title: string; kind: string; min: number; max: number; allowSplit?: boolean; options: OptionSeed[] }
 export interface ProductSeed {
   id: string; apiId: string; name: string; description: string; categoryId: string; structure: string; baseCents: number
-  requiresTicketCode: boolean; rules: RuleSeed[]; stock: number
+  requiresTicketCode: boolean; rules: RuleSeed[]
 }
 
 const SIZES: OptionSeed[] = [{ name: 'Mediano', isDefault: true }, { name: 'Grande', extraCents: 1500 }, { name: 'Jumbo', extraCents: 3000 }]
@@ -178,34 +177,34 @@ const POPCORN: OptionSeed[] = [{ name: 'Mantequilla', isDefault: true }, { name:
 const SODAS: OptionSeed[] = [{ name: 'Cola', isDefault: true }, { name: 'Cola sin azúcar' }, { name: 'Naranja' }, { name: 'Limón' }]
 
 export const PRODUCT_SEEDS: ProductSeed[] = [
-  { id: 'p-1', apiId: '14301', name: 'Combo pareja', description: 'Palomitas grandes y dos refrescos grandes', categoryId: 'cat-combos', structure: 'combo', baseCents: 18900, requiresTicketCode: true, stock: 60,
+  { id: 'p-1', apiId: '14301', name: 'Combo pareja', description: 'Palomitas grandes y dos refrescos grandes', categoryId: 'cat-combos', structure: 'combo', baseCents: 18900, requiresTicketCode: true,
     rules: [
       { title: 'Sabor de las palomitas', kind: 'flavor', min: 1, max: 2, allowSplit: true, options: POPCORN },
       { title: 'Primer refresco', kind: 'choice', min: 1, max: 1, options: SODAS },
       { title: 'Segundo refresco', kind: 'choice', min: 1, max: 1, options: SODAS }
     ] },
-  { id: 'p-2', apiId: '14302', name: 'Combo individual', description: 'Palomitas medianas y un refresco mediano', categoryId: 'cat-combos', structure: 'combo', baseCents: 12900, requiresTicketCode: true, stock: 80,
+  { id: 'p-2', apiId: '14302', name: 'Combo individual', description: 'Palomitas medianas y un refresco mediano', categoryId: 'cat-combos', structure: 'combo', baseCents: 12900, requiresTicketCode: true,
     rules: [
       { title: 'Sabor de las palomitas', kind: 'flavor', min: 1, max: 1, options: POPCORN },
       { title: 'Refresco', kind: 'choice', min: 1, max: 1, options: SODAS }
     ] },
-  { id: 'p-3', apiId: '16101', name: 'Palomitas', description: 'Recién hechas, con tu sabor favorito', categoryId: 'cat-palomitas', structure: 'compound', baseCents: 7400, requiresTicketCode: true, stock: 220,
+  { id: 'p-3', apiId: '16101', name: 'Palomitas', description: 'Recién hechas, con tu sabor favorito', categoryId: 'cat-palomitas', structure: 'compound', baseCents: 7400, requiresTicketCode: true,
     rules: [
       { title: 'Tamaño', kind: 'size', min: 1, max: 1, options: SIZES },
       { title: 'Sabor', kind: 'flavor', min: 1, max: 2, allowSplit: true, options: POPCORN }
     ] },
-  { id: 'p-4', apiId: '16201', name: 'Refresco', description: 'Bien frío, en el sabor que elijas', categoryId: 'cat-bebidas', structure: 'compound', baseCents: 5400, requiresTicketCode: true, stock: 300,
+  { id: 'p-4', apiId: '16201', name: 'Refresco', description: 'Bien frío, en el sabor que elijas', categoryId: 'cat-bebidas', structure: 'compound', baseCents: 5400, requiresTicketCode: true,
     rules: [
       { title: 'Tamaño', kind: 'size', min: 1, max: 1, options: SIZES },
       { title: 'Sabor', kind: 'flavor', min: 1, max: 1, options: SODAS }
     ] },
-  { id: 'p-5', apiId: '16301', name: 'Agua natural', description: 'Botella de 600 ml', categoryId: 'cat-bebidas', structure: 'simple', baseCents: 3500, requiresTicketCode: true, stock: 140, rules: [] },
-  { id: 'p-6', apiId: '17101', name: 'Nachos con queso', description: 'Totopos con queso caliente', categoryId: 'cat-alimentos', structure: 'compound', baseCents: 7900, requiresTicketCode: true, stock: 90,
+  { id: 'p-5', apiId: '16301', name: 'Agua natural', description: 'Botella de 600 ml', categoryId: 'cat-bebidas', structure: 'simple', baseCents: 3500, requiresTicketCode: true, rules: [] },
+  { id: 'p-6', apiId: '17101', name: 'Nachos con queso', description: 'Totopos con queso caliente', categoryId: 'cat-alimentos', structure: 'compound', baseCents: 7900, requiresTicketCode: true,
     rules: [{ title: 'Adicionales', kind: 'extra', min: 0, max: 3, options: [{ name: 'Jalapeños', extraCents: 1200 }, { name: 'Queso extra', extraCents: 1800 }, { name: 'Salsa picante', extraCents: 500 }] }] },
-  { id: 'p-7', apiId: '17201', name: 'Hot dog clásico', description: 'Con papas y aderezos', categoryId: 'cat-alimentos', structure: 'simple', baseCents: 8900, requiresTicketCode: true, stock: 50, rules: [] },
-  { id: 'p-8', apiId: '18101', name: 'Gomitas', description: 'Bolsa de 150 g', categoryId: 'cat-dulces', structure: 'simple', baseCents: 4500, requiresTicketCode: true, stock: 120, rules: [] },
-  { id: 'p-9', apiId: '18201', name: 'Chocolate', description: 'Barra de 100 g', categoryId: 'cat-dulces', structure: 'simple', baseCents: 4200, requiresTicketCode: true, stock: 0, rules: [] },
-  { id: 'p-10', apiId: '19101', name: 'Vaso coleccionable', description: 'Edición limitada de 800 ml', categoryId: 'cat-promocionales', structure: 'simple', baseCents: 32900, requiresTicketCode: false, stock: 24, rules: [] }
+  { id: 'p-7', apiId: '17201', name: 'Hot dog clásico', description: 'Con papas y aderezos', categoryId: 'cat-alimentos', structure: 'simple', baseCents: 8900, requiresTicketCode: true, rules: [] },
+  { id: 'p-8', apiId: '18101', name: 'Gomitas', description: 'Bolsa de 150 g', categoryId: 'cat-dulces', structure: 'simple', baseCents: 4500, requiresTicketCode: true, rules: [] },
+  { id: 'p-9', apiId: '18201', name: 'Chocolate', description: 'Barra de 100 g', categoryId: 'cat-dulces', structure: 'simple', baseCents: 4200, requiresTicketCode: true, rules: [] },
+  { id: 'p-10', apiId: '19101', name: 'Vaso coleccionable', description: 'Edición limitada de 800 ml', categoryId: 'cat-promocionales', structure: 'simple', baseCents: 32900, requiresTicketCode: false, rules: [] }
 ]
 
 /** Diferencia de precio por complejo, en centavos, sobre el precio base de la cadena. */
@@ -285,17 +284,4 @@ export function employeeSeeds() {
       complexId: complex.id, roleId
     }
   }))
-}
-
-/* Ventas de demostración por complejo: no salen de los pedidos registrados. */
-
-export const SALES_SEEDS: Record<string, { ticketsPerDay: number; ticketPriceCents: number; foodPerTicketCents: number; otherPerTicketCents: number }> = {
-  'xal-centro': { ticketsPerDay: 690, ticketPriceCents: 7600, foodPerTicketCents: 3100, otherPerTicketCents: 600 },
-  'xal-centro-vip': { ticketsPerDay: 210, ticketPriceCents: 16500, foodPerTicketCents: 9800, otherPerTicketCents: 900 },
-  'xal-animas': { ticketsPerDay: 520, ticketPriceCents: 7300, foodPerTicketCents: 2800, otherPerTicketCents: 500 },
-  'ver-boulevard': { ticketsPerDay: 760, ticketPriceCents: 8000, foodPerTicketCents: 3300, otherPerTicketCents: 700 },
-  'ver-puerto': { ticketsPerDay: 480, ticketPriceCents: 7800, foodPerTicketCents: 2900, otherPerTicketCents: 600 },
-  'boca-costa': { ticketsPerDay: 820, ticketPriceCents: 8600, foodPerTicketCents: 3500, otherPerTicketCents: 800 },
-  'coatza-malecon': { ticketsPerDay: 430, ticketPriceCents: 7000, foodPerTicketCents: 2500, otherPerTicketCents: 500 },
-  'cordoba-parque': { ticketsPerDay: 390, ticketPriceCents: 6800, foodPerTicketCents: 2400, otherPerTicketCents: 400 }
 }

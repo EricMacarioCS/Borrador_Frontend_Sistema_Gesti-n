@@ -2,20 +2,13 @@
 import { addDays } from '@/shared/lib/datetime'
 import { endTime } from '@/domain/rules'
 import * as F from './fixtures'
-import type { CatalogRec, MockState, OrderRec, PriceRec, ProductRec, RoomRec, ScreeningRec } from './store'
+import type { CatalogRec, MockState, PriceRec, ProductRec, RoomRec, ScreeningRec } from './store'
 
 export function hash(text: string): number {
   let value = 2166136261
   for (const char of text) value = Math.imul(value ^ char.charCodeAt(0), 16777619)
   value = Math.imul(value ^ (value >>> 15), 2246822507)
   return (value ^ (value >>> 13)) >>> 0
-}
-
-const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
-/** Folio CIN-XXXX-XXXX-XXXX en Crockford Base32, igual que el sitio web. */
-export function ticketCode(seed: string): string {
-  const chars = Array.from({ length: 12 }, (_, i) => CROCKFORD[hash(`${seed}:${i}`) % 32]!).join('')
-  return `CIN-${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8, 12)}`
 }
 
 function rooms(): RoomRec[] {
@@ -106,68 +99,16 @@ function catalog(complexId: string, allProducts: ProductRec[]): CatalogRec[] {
         productId: product.id, version: 1, priceCents: seed.baseCents + markup, available: !(complexId === 'coatza-malecon' && product.id === 'p-6'),
         options: product.rules.flatMap(rule => rule.options.map(option => ({
           optionId: option.id, active: !(option.name === 'Chile' && complexId.startsWith('ver')), extraCents: option.extraCents
-        }))),
-        stock: Math.max(0, seed.stock - (hash(`${complexId}${product.id}`) % 40))
+        })))
       }
     })
 }
 
-const NAMES = ['Ana Prueba', 'Carlos Demo', 'Lucía Ejemplo', 'Jorge Muestra', 'Paola Ficticia', 'Raúl Simulado', 'Elena Test', 'Mario Ensayo']
-
-/** Pedidos de ejemplo: boletos de funciones recientes y próximas, y alimentos ligados a algunos de ellos. */
-function orders(allScreenings: ScreeningRec[], allRooms: RoomRec[], allProducts: ProductRec[], state: Pick<MockState, 'priceSheets' | 'catalogs'>): OrderRec[] {
+/** Boletos vendidos de ejemplo. Los registra el sitio web; la gestión solo necesita saber si una función ya vendió. */
+function ticketSales(allScreenings: ScreeningRec[]): Record<string, number> {
   const today = F.today()
-  const now = Date.now()
-  const result: OrderRec[] = []
   const chosen = allScreenings.filter(s => s.date >= addDays(today, -1) && s.date <= addDays(today, 2)).filter((_, i) => i % 9 === 0)
-  chosen.forEach((screening, i) => {
-    const room = allRooms.find(r => r.id === screening.roomId)!
-    const sheet = state.priceSheets[room.complexId]!.prices
-    const general = sheet.find(p => p.roomType === room.type && p.projection === screening.projection && p.ticketTypeId === 'tt-general')!
-    const count = 1 + (hash(screening.id) % 4)
-    const tickets = Array.from({ length: count }, (_, n) => ({
-      seat: `${String.fromCharCode(70 + (hash(`${screening.id}r`) % 4))}${5 + n}`, ticketType: n === 2 ? 'Niño' : 'General',
-      priceCents: n === 2 ? Math.round(general.priceCents * 0.75 / 100) * 100 : general.priceCents
-    }))
-    const subtotal = tickets.reduce((sum, t) => sum + t.priceCents, 0)
-    const fee = general.onlineFeeCents * count
-    const cancelled = i % 11 === 5
-    const failed = i % 13 === 7
-    const name = NAMES[i % NAMES.length]!
-    const code = failed ? null : ticketCode(`order-${screening.id}`)
-    const created = new Date(now - (1 + (hash(screening.id) % 72)) * 3600_000).toISOString()
-    result.push({
-      id: `ord-${String(i + 1).padStart(4, '0')}`, ticketCode: code, linkedTicketCode: null, kind: 'tickets',
-      status: failed ? 'payment-failed' : cancelled ? 'refunded' : 'confirmed', foodStatus: null,
-      channel: i % 5 === 0 ? 'box-office' : 'online', complexId: room.complexId, customerName: name,
-      customerEmail: `${name.split(' ')[0]!.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')}${i}@ejemplo.test`, createdAt: created,
-      screeningId: screening.id, tickets, items: [], pickup: null, paymentMethod: i % 5 === 0 ? 'Efectivo' : 'Tarjeta terminación 4242',
-      subtotalCents: subtotal, discountCents: 0, serviceFeeCents: i % 5 === 0 ? 0 : fee, totalCents: subtotal + (i % 5 === 0 ? 0 : fee),
-      promotionName: null, cancelReason: cancelled ? 'Solicitud del cliente' : null,
-      refund: cancelled ? { status: 'completed', amountCents: subtotal + fee, completeAt: null } : { status: 'none', amountCents: 0, completeAt: null }
-    })
-    // Uno de cada tres pedidos de boletos tiene alimentos ligados a su folio.
-    if (code && !cancelled && i % 3 === 0) {
-      const entries = state.catalogs[room.complexId]!
-      const popcorn = allProducts.find(p => p.id === 'p-3')!
-      const combo = entries.find(e => e.productId === 'p-1')
-      const items = [
-        { productId: popcorn.id, name: popcorn.name, detail: 'Grande · Mantequilla', quantity: 1, totalCents: (entries.find(e => e.productId === 'p-3')?.priceCents ?? 7400) + 1500 },
-        ...(combo ? [{ productId: 'p-1', name: 'Combo pareja', detail: 'Caramelo · Cola · Naranja', quantity: 1, totalCents: combo.priceCents + 1000 }] : [])
-      ]
-      const total = items.reduce((sum, item) => sum + item.totalCents, 0)
-      const stage = ['paid', 'preparing', 'ready', 'delivered'][i % 4]!
-      result.push({
-        id: `ord-${String(i + 1).padStart(4, '0')}-a`, ticketCode: null, linkedTicketCode: code, kind: 'food', status: 'confirmed', foodStatus: stage,
-        channel: 'online', complexId: room.complexId, customerName: name, customerEmail: result.at(-1)!.customerEmail,
-        createdAt: new Date(Date.parse(created) + 600_000).toISOString(), screeningId: null, tickets: [], items,
-        pickup: i % 2 ? 'during' : 'before', paymentMethod: 'Tarjeta terminación 4242',
-        subtotalCents: total, discountCents: 0, serviceFeeCents: 0, totalCents: total, promotionName: null,
-        cancelReason: null, refund: { status: 'none', amountCents: 0, completeAt: null }
-      })
-    }
-  })
-  return result.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return Object.fromEntries(chosen.map(s => [s.id, 1 + (hash(s.id) % 4)]))
 }
 
 export function seedState(): MockState {
@@ -180,7 +121,7 @@ export function seedState(): MockState {
   const at = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 3600_000).toISOString()
 
   return {
-    v: 1,
+    v: 2,
     seq: 1000,
     seededOn: today,
     sessions: {},
@@ -203,12 +144,11 @@ export function seedState(): MockState {
     products: allProducts,
     catalogs,
     priceHistory: { 'xal-centro': [{ id: 'ph-1', productId: 'p-3', previousCents: 6900, newCents: 7400, changedAt: at(24 * 9) }] },
-    movements: {},
     promotions: F.PROMOTION_SEEDS.map(p => ({
       ...p, version: 1, validFrom: addDays(today, p.validFrom), validTo: p.validTo === null ? null : addDays(today, p.validTo)
     })),
     clubLevels: F.CLUB_LEVEL_SEEDS.map(level => ({ ...level, version: 1 })),
-    orders: orders(allScreenings, allRooms, allProducts, { priceSheets, catalogs }),
+    ticketSales: ticketSales(allScreenings),
     banners: F.BANNER_SEEDS.map(b => ({ ...b, version: 1, startsOn: addDays(today, b.startsOn), endsOn: b.endsOn === null ? null : addDays(today, b.endsOn) })),
     home: { version: 1, featuredMovieIds: ['m-101', 'm-102', 'm-104', 'm-109', 'm-105'] },
     faq: { version: 1, items: F.FAQ_SEED.map(item => ({ ...item })) },

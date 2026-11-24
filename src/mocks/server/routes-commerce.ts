@@ -1,13 +1,11 @@
-/** Tarifas, dulcería, inventario, promociones, Club y pedidos. */
+/** Tarifas, dulcería, promociones y Club. */
 import { PROJECTIONS, ROOM_TYPES } from '../fixtures'
 import type { CatalogRec, ProductRec, PromotionRec, RuleRec } from '../store'
 import {
-  body, cents, checkVersion, fail, idempotent, integer, invalid, isoDate, list, logActivity, money, nextId, noContent, nullableText, ok,
+  body, cents, checkVersion, fail, integer, invalid, isoDate, list, logActivity, money, nextId, noContent, nullableText, ok,
   requireScope, route, strings, text, type Context
 } from './core'
-import { cancellationOf, catalogJson, orderDetailJson, orderSummaryJson, productJson, settleRefunds } from './views'
-
-const inventoryOn = (ctx: Context) => ctx.request.query.get('inventory') !== 'off'
+import { catalogJson, productJson } from './views'
 
 /* Tipos de boleto y tarifas */
 
@@ -158,11 +156,11 @@ route('PUT', '/products/:id', 'products.manage', ctx => {
   return ok(productJson(ctx.state, product))
 })
 
-/* Dulcería: catálogo, precios e inventario de cada complejo */
+/* Dulcería: catálogo, precios y disponibilidad de cada complejo */
 
 route('GET', '/complexes/:id/catalog', 'any', ctx => {
   const entries = ctx.state.catalogs[ctx.params[0]!] ?? fail(404, 'NOT_FOUND')
-  return ok({ items: entries.map(entry => catalogJson(ctx.state, ctx.params[0]!, entry, inventoryOn(ctx))) })
+  return ok({ items: entries.map(entry => catalogJson(ctx.state, ctx.params[0]!, entry)) })
 })
 
 route('PUT', '/complexes/:id/catalog/:productId', 'products.manage', ctx => {
@@ -194,11 +192,11 @@ route('PUT', '/complexes/:id/catalog/:productId', 'products.manage', ctx => {
     }
     Object.assign(entry, { priceCents, available: input.available !== false, options, version: entry.version + 1 })
   } else {
-    entry = { productId, version: 1, priceCents, available: input.available !== false, options, stock: 0 } satisfies CatalogRec
+    entry = { productId, version: 1, priceCents, available: input.available !== false, options } satisfies CatalogRec
     entries.push(entry)
     logActivity(ctx, 'Dulcería', `Agregó ${product.name} al catálogo de ${complexName}.`)
   }
-  return ok(catalogJson(ctx.state, complexId, entry, inventoryOn(ctx)))
+  return ok(catalogJson(ctx.state, complexId, entry))
 })
 
 route('DELETE', '/complexes/:id/catalog/:productId', 'products.manage', ctx => {
@@ -219,32 +217,20 @@ route('GET', '/complexes/:id/price-history', 'any', ctx => ok({
   }))
 }))
 
-route('POST', '/complexes/:id/catalog/:productId/stock-adjustments', 'inventory.adjust', ctx => {
+/** Sin inventario: el personal marca a mano si el producto está disponible en el complejo. */
+route('PUT', '/complexes/:id/catalog/:productId/availability', 'products.manage', ctx => {
   const [complexId, productId] = ctx.params as [string, string]
   requireScope(ctx, complexId)
   const entry = ctx.state.catalogs[complexId]?.find(e => e.productId === productId) ?? fail(404, 'NOT_FOUND')
   const input = body(ctx)
   checkVersion(entry, input.version)
-  const quantity = integer(input, 'quantity', 'La nueva cantidad', 0, 100000)
-  const reason = String(input.reason)
-  if (!['count-correction', 'unrecorded-waste', 'unrecorded-entry', 'initial-load', 'other'].includes(reason)) invalid('Elige el motivo del ajuste.', 'reason')
-  const note = text(input, 'note', 'las observaciones', { optional: true, max: 300 })
-  if (reason === 'other' && !note) invalid('Describe el motivo en las observaciones.', 'note')
-  if (quantity === entry.stock) invalid('La cantidad es igual a la actual.', 'quantity')
-  ;(ctx.state.movements[complexId] ??= []).unshift({
-    id: nextId(ctx.state, 'mov'), productId, before: entry.stock, after: quantity, reason, note, author: ctx.user.name, at: new Date(ctx.now).toISOString()
-  })
-  Object.assign(entry, { stock: quantity, version: entry.version + 1 })
-  logActivity(ctx, 'Inventario', `Ajustó ${ctx.state.products.find(p => p.id === productId)?.name} a ${quantity} en ${ctx.state.complexes.find(c => c.id === complexId)?.name}.`)
-  return ok(catalogJson(ctx.state, complexId, entry, true))
+  if (typeof input.available !== 'boolean') invalid('Indica si el producto está disponible.', 'available')
+  Object.assign(entry, { available: input.available, version: entry.version + 1 })
+  const productName = ctx.state.products.find(p => p.id === productId)?.name
+  const complexName = ctx.state.complexes.find(c => c.id === complexId)?.name
+  logActivity(ctx, 'Dulcería', `Marcó ${productName} como ${input.available ? 'disponible' : 'no disponible'} en ${complexName}.`)
+  return ok(catalogJson(ctx.state, complexId, entry))
 })
-
-route('GET', '/complexes/:id/stock-movements', 'any', ctx => ok({
-  items: (ctx.state.movements[ctx.params[0]!] ?? []).map(m => ({
-    id: m.id, productName: ctx.state.products.find(p => p.id === m.productId)?.name ?? 'Producto retirado',
-    before: m.before, after: m.after, reason: m.reason, note: m.note, author: m.author, at: m.at
-  }))
-}))
 
 /* Promociones y Club */
 
@@ -307,66 +293,4 @@ route('PUT', '/club-levels/:id', 'promotions.manage', ctx => {
   })
   logActivity(ctx, 'Club', `Actualizó el nivel ${level.name}.`)
   return ok(level)
-})
-
-/* Pedidos */
-
-route('GET', '/orders', 'orders.view', ctx => {
-  settleRefunds(ctx.state, ctx.now)
-  const q = ctx.request.query
-  const search = (q.get('search') ?? '').trim().toUpperCase()
-  const page = Math.max(1, Number(q.get('page') ?? 1))
-  const pageSize = Math.min(100, Math.max(1, Number(q.get('pageSize') ?? 25)))
-  const filtered = ctx.state.orders.filter(order =>
-    (ctx.user.complexIds === null || ctx.user.complexIds.includes(order.complexId)) &&
-    (!q.get('complexId') || order.complexId === q.get('complexId')) &&
-    (!q.get('status') || order.status === q.get('status')) &&
-    (!q.get('kind') || order.kind === q.get('kind')) &&
-    (!search || [order.ticketCode, order.linkedTicketCode, order.customerName, order.customerEmail, order.id].some(value => value?.toUpperCase().includes(search))))
-  return ok({ items: filtered.slice((page - 1) * pageSize, page * pageSize).map(order => orderSummaryJson(ctx.state, order)), total: filtered.length, page, pageSize })
-})
-
-function ownOrder(ctx: Context) {
-  settleRefunds(ctx.state, ctx.now)
-  const order = ctx.state.orders.find(o => o.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
-  requireScope(ctx, order.complexId)
-  return order
-}
-
-route('GET', '/orders/:id', 'orders.view', ctx => ok(orderDetailJson(ctx.state, ownOrder(ctx), ctx.now)))
-
-route('POST', '/orders/:id/cancellations', 'orders.manage', ctx => ok(idempotent(ctx, `cancel-${ctx.params[0]}`, () => {
-  const order = ownOrder(ctx)
-  const reason = text(body(ctx), 'reason', 'el motivo de la cancelación', { max: 300 })
-  const cancellation = cancellationOf(ctx.state, order, ctx.now)
-  if (!cancellation.allowed) fail(409, 'CANCELLATION_WINDOW_CLOSED', cancellation.reason ?? undefined)
-  for (const affected of cancellation.affected) {
-    affected.status = 'refund-pending'
-    affected.cancelReason = affected === order ? reason : `Cancelado junto con ${order.ticketCode ?? order.id}`
-    affected.refund = { status: 'processing', amountCents: affected.totalCents, completeAt: ctx.now + 4000 }
-    // Lo vendido vuelve al inventario del complejo.
-    for (const item of affected.items) {
-      const entry = ctx.state.catalogs[affected.complexId]?.find(e => e.productId === item.productId)
-      if (!entry) continue
-      ;(ctx.state.movements[affected.complexId] ??= []).unshift({
-        id: nextId(ctx.state, 'mov'), productId: item.productId, before: entry.stock, after: entry.stock + item.quantity,
-        reason: 'cancellation', note: affected.id, author: 'Sistema', at: new Date(ctx.now).toISOString()
-      })
-      entry.stock += item.quantity
-    }
-  }
-  logActivity(ctx, 'Pedidos', `Canceló ${cancellation.affected.map(o => o.ticketCode ?? o.id).join(', ')}. Motivo: ${reason}`)
-  return orderDetailJson(ctx.state, order, ctx.now)
-}), 201))
-
-const NEXT_FOOD: Record<string, string> = { paid: 'preparing', preparing: 'ready', ready: 'delivered' }
-
-route('POST', '/orders/:id/food-status', 'orders.manage', ctx => {
-  const order = ownOrder(ctx)
-  if (order.kind !== 'food' || order.status !== 'confirmed' || !order.foodStatus || !NEXT_FOOD[order.foodStatus]) {
-    fail(409, 'RESOURCE_IN_USE', 'Este pedido no tiene un siguiente paso.')
-  }
-  order.foodStatus = NEXT_FOOD[order.foodStatus!]!
-  logActivity(ctx, 'Pedidos', `Avanzó el pedido ${order.id} a ${order.foodStatus}.`)
-  return ok(orderDetailJson(ctx.state, order, ctx.now))
 })

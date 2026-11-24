@@ -20,9 +20,9 @@ export interface Versioned {
 /* Sesión y permisos */
 
 export type Permission =
-  | 'dashboard.view' | 'reports.view'
-  | 'movies.manage' | 'screenings.manage' | 'products.manage' | 'inventory.adjust' | 'content.manage'
-  | 'prices.manage' | 'promotions.manage' | 'orders.view' | 'orders.manage'
+  | 'dashboard.view'
+  | 'movies.manage' | 'screenings.manage' | 'products.manage' | 'content.manage'
+  | 'prices.manage' | 'promotions.manage'
   | 'complexes.manage' | 'employees.manage' | 'settings.view'
 
 export interface AdminUser {
@@ -173,7 +173,8 @@ export interface Screening extends Versioned {
   endsNextDay: boolean
   isPresale: boolean
   active: boolean
-  ticketsSold: number
+  /** Ya tiene boletos vendidos: no se mueve, no se desactiva y no se retira. */
+  hasTicketsSold: boolean
 }
 
 export interface ScreeningUpdate {
@@ -275,15 +276,16 @@ export interface OptionSetting {
   extraCents: Cents
 }
 
-/** Producto en el catálogo de un complejo (`detalle_catalogo` y `disponibilidad_modificador`). */
+/**
+ * Producto en el catálogo de un complejo (`detalle_catalogo` y `disponibilidad_modificador`).
+ * No hay inventario: el personal marca a mano si el producto está disponible.
+ */
 export interface CatalogEntry extends Versioned {
   complexId: Id
   product: Product
   priceCents: Cents
   available: boolean
   optionSettings: OptionSetting[]
-  /** Existencias. `null` si el inventario no está habilitado. */
-  stock: number | null
 }
 
 export interface CatalogEntryInput {
@@ -299,20 +301,6 @@ export interface PriceChange {
   previousCents: Cents
   newCents: Cents
   changedAt: Date
-}
-
-export const ADJUSTMENT_REASONS = ['count-correction', 'unrecorded-waste', 'unrecorded-entry', 'initial-load', 'other'] as const
-export type AdjustmentReason = typeof ADJUSTMENT_REASONS[number]
-
-export interface StockMovement {
-  id: Id
-  productName: string
-  before: number
-  after: number
-  reason: AdjustmentReason | 'sale' | 'cancellation' | (string & {})
-  note: string
-  author: string
-  at: Date
 }
 
 /* Tarifas */
@@ -362,57 +350,6 @@ export interface Promotion extends Versioned {
 }
 
 export type PromotionInput = Omit<Promotion, 'id' | 'version'>
-
-/* Pedidos */
-
-export type OrderStatus = 'payment-pending' | 'confirmed' | 'payment-failed' | 'refund-pending' | 'refunded' | 'cancelled'
-export type FoodStatus = 'paid' | 'preparing' | 'ready' | 'delivered'
-
-export interface OrderSummary {
-  id: Id
-  ticketCode: string | null
-  linkedTicketCode: string | null
-  kind: 'tickets' | 'food'
-  status: OrderStatus
-  foodStatus: FoodStatus | null
-  channel: 'online' | 'box-office'
-  complexId: Id
-  complexName: string
-  customerName: string
-  customerEmail: string
-  createdAt: Date
-  totalCents: Cents
-}
-
-export interface OrderDetail extends OrderSummary {
-  screening: { movieTitle: string; date: string; startTime: string; room: string; projection: string; language: string } | null
-  tickets: { seat: string; ticketType: string; priceCents: Cents }[]
-  items: { name: string; detail: string; quantity: number; totalCents: Cents }[]
-  pickup: 'before' | 'during' | null
-  paymentMethod: string
-  totals: { subtotalCents: Cents; discountCents: Cents; serviceFeeCents: Cents; totalCents: Cents }
-  promotionName: string | null
-  cancellation: { allowed: boolean; reason: string | null; affectedIds: Id[] }
-  refund: { status: 'none' | 'requested' | 'processing' | 'completed' | 'failed'; amountCents: Cents }
-  cancelReason: string | null
-  linkedOrders: { id: Id; ticketCode: string | null; kind: 'tickets' | 'food'; status: OrderStatus }[]
-}
-
-export interface OrderQuery {
-  search?: string
-  complexId?: Id
-  status?: OrderStatus
-  kind?: 'tickets' | 'food'
-  page: number
-  pageSize: number
-}
-
-export interface Page<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-}
 
 /* Contenido del sitio */
 
@@ -494,17 +431,7 @@ export interface Employee extends Versioned {
 
 export type EmployeeInput = Omit<Employee, 'id' | 'version'>
 
-/* Reportes y actividad */
-
-export interface DailySales {
-  date: string
-  complexId: Id
-  ticketsCents: Cents
-  foodCents: Cents
-  otherCents: Cents
-  ticketCount: number
-  transactions: number
-}
+/* Bitácora */
 
 export interface Activity {
   id: Id

@@ -98,7 +98,7 @@ const structures = Object.entries(STRUCTURE_LABELS) as [ProductStructure, string
 <template>
   <BaseDialog :open="open" :label="product ? `Editar ${product.name}` : 'Nuevo producto'" eyebrow="Productos de la cadena" size="wide" :dirty="dirty" @close="emit('close')">
     <form :id="`${id}-form`" class="form-grid" novalidate @submit.prevent="submit">
-      <p class="notice full small">Nombre, opciones y reglas son iguales en todos los complejos. Precio, disponibilidad y existencias se definen en el catálogo de cada complejo.</p>
+      <p class="notice full small">Nombre, opciones y reglas son iguales en todos los complejos. Precio y disponibilidad se definen en el catálogo de cada complejo.</p>
       <div class="field">
         <label :for="`${id}-name`">Nombre *</label>
         <input :id="`${id}-name`" v-model="draft.name" class="input" maxlength="120" />

@@ -20,10 +20,8 @@ const VIEWS: Record<string, () => Promise<unknown>> = {
   content: () => import('@/features/content/ContentView.vue'),
   prices: () => import('@/features/prices/PricesView.vue'),
   promotions: () => import('@/features/promotions/PromotionsView.vue'),
-  orders: () => import('@/features/orders/OrdersView.vue'),
   complexes: () => import('@/features/complexes/ComplexesView.vue'),
   employees: () => import('@/features/employees/EmployeesView.vue'),
-  reports: () => import('@/features/reports/ReportsView.vue'),
   settings: () => import('@/features/settings/SettingsView.vue')
 }
 

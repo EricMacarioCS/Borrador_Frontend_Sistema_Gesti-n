@@ -216,7 +216,7 @@ route('DELETE', '/movies/:id', 'movies.manage', ctx => {
   const scheduled = upcoming(ctx.state, ctx.now, s => s.movieId === movie.id)
   if (scheduled.length) fail(409, 'RESOURCE_IN_USE', `Tiene ${scheduled.length} funciones programadas. Retíralas primero en Funciones y horarios.`)
   if (ctx.state.screenings.some(s => s.movieId === movie.id)) {
-    fail(409, 'RESOURCE_IN_USE', 'Tiene funciones pasadas con ventas registradas. Se conserva para los reportes; márcala con un último día.')
+    fail(409, 'RESOURCE_IN_USE', 'Tiene funciones pasadas con ventas registradas. Se conserva como historial; márcala con un último día.')
   }
   ctx.state.movies = ctx.state.movies.filter(m => m.id !== movie.id)
   logActivity(ctx, 'Películas', `Retiró ${movie.title} del catálogo.`)
@@ -313,7 +313,7 @@ route('PUT', '/screenings/:id', 'screenings.manage', ctx => {
   }
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(next.startTime)) invalid('Hora inválida.', 'startTime')
   const moves = next.roomId !== screening.roomId || next.date !== screening.date || next.startTime !== screening.startTime || !next.active
-  if (sold && moves) fail(409, 'RESOURCE_IN_USE', `La función tiene ${sold} boletos vendidos. Cancélalos en Pedidos antes de moverla o desactivarla.`)
+  if (sold && moves) fail(409, 'RESOURCE_IN_USE', 'La función ya tiene boletos vendidos: no se puede mover ni desactivar.')
   if (!room.projections.includes(next.projection)) invalid(`La sala ${room.number} no proyecta en ${projectionLabel(next.projection).name}.`, 'projection')
   const movie = ctx.state.movies.find(m => m.id === screening.movieId)!
   if ((movie.releaseDate && next.date < movie.releaseDate) || (movie.lastDay && next.date > movie.lastDay)) invalid('La fecha está fuera de la exhibición de la película.', 'date')
@@ -344,7 +344,7 @@ route('POST', '/screenings/removals', 'screenings.manage', ctx => {
   for (const screening of targets) {
     requireScope(ctx, ctx.state.rooms.find(r => r.id === screening.roomId)!.complexId)
     const sold = ticketsSold(ctx.state, screening.id)
-    if (sold) fail(409, 'RESOURCE_IN_USE', `Una de las funciones tiene ${sold} boletos vendidos. Cancélalos en Pedidos.`)
+    if (sold) fail(409, 'RESOURCE_IN_USE', 'Una de las funciones ya tiene boletos vendidos: no se puede retirar.')
     if (!upcoming(ctx.state, ctx.now, s => s.id === screening.id).length) fail(409, 'RESOURCE_IN_USE', 'Una de las funciones ya empezó: se conserva como historial.')
   }
   ctx.state.screenings = ctx.state.screenings.filter(s => !ids.includes(s.id))

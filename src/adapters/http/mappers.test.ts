@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ScreeningDto, SessionDto, StockMovementDto } from './schemas'
+import { ActivityDto, ScreeningDto, SessionDto } from './schemas'
 import { parse, toScreening, toSession } from './mappers'
 import { ApiError } from '@/shared/lib/errors'
 
@@ -7,7 +7,7 @@ const screening = {
   id: 's-1', version: 1, movieId: 'm-1', movieTitle: 'Película', complexId: 'c-1',
   room: { id: 'r-1', number: 5, type: { code: 'traditional', name: 'Tradicional' } },
   projection: { code: '2d', name: '2D' }, language: { code: 'es', name: 'Español' },
-  date: '2026-11-24', startTime: '19:30', endTime: '21:40', endsNextDay: false, isPresale: false, active: true, ticketsSold: 0
+  date: '2026-11-24', startTime: '19:30', endTime: '21:40', endsNextDay: false, isPresale: false, active: true, hasTicketsSold: false
 }
 
 function malformed(run: () => unknown) {
@@ -33,11 +33,11 @@ describe('conversión de respuestas', () => {
   })
 
   it('un instante sin zona se rechaza', () => {
-    malformed(() => parse(StockMovementDto, { id: '1', productName: 'P', before: 1, after: 2, reason: 'other', note: '', author: 'A', at: '2026-11-24T10:00:00' }, 'movement'))
+    malformed(() => parse(ActivityDto, { id: '1', actor: 'A', area: 'Dulcería', summary: 'Cambio', at: '2026-11-24T10:00:00' }, 'activity'))
   })
 
   it('un permiso desconocido nunca concede acceso', () => {
-    const session = toSession(parse(SessionDto, { user: null, permissions: ['orders.view', 'superusuario'], complexIds: null, csrfToken: 't' }, 'session'))
-    expect(session.permissions).toEqual(['orders.view'])
+    const session = toSession(parse(SessionDto, { user: null, permissions: ['screenings.manage', 'superusuario'], complexIds: null, csrfToken: 't' }, 'session'))
+    expect(session.permissions).toEqual(['screenings.manage'])
   })
 })

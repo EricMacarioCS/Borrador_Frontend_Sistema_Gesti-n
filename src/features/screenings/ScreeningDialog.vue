@@ -28,7 +28,7 @@ watch(() => props.screening, screening => {
 }, { immediate: true })
 
 const dirty = computed(() => JSON.stringify(draft.value) !== original)
-const sold = computed(() => props.screening?.ticketsSold ?? 0)
+const sold = computed(() => props.screening?.hasTicketsSold ?? false)
 // Solo salas que proyectan en el formato elegido.
 const roomOptions = computed(() => (rooms.data.value ?? []).filter(room => room.projections.some(p => p.code === draft.value?.projection)))
 
@@ -48,14 +48,14 @@ const save = useMutation({
   <BaseDialog :open="!!screening" :label="screening ? `Editar ${screening.movieTitle}` : 'Editar función'" :eyebrow="screening ? store.complexName(screening.complexId) : undefined"
     :dirty="dirty" @close="emit('close')">
     <form v-if="draft && screening" :id="`${id}-form`" class="form-grid" novalidate @submit.prevent="save.mutate()">
-      <p v-if="sold" class="notice warning full">Tiene {{ sold }} boletos vendidos: solo puedes cambiar el idioma o la proyección. Para moverla, cancela los boletos en Pedidos.</p>
+      <p v-if="sold" class="notice warning full">Tiene boletos vendidos: solo puedes cambiar el idioma o la proyección.</p>
       <div class="field">
         <label :for="`${id}-date`">Fecha</label>
-        <input :id="`${id}-date`" v-model="draft.date" class="input" type="date" :min="store.today()" :disabled="sold > 0" />
+        <input :id="`${id}-date`" v-model="draft.date" class="input" type="date" :min="store.today()" :disabled="sold" />
       </div>
       <div class="field">
         <label :for="`${id}-time`">Hora de inicio</label>
-        <input :id="`${id}-time`" v-model="draft.startTime" class="input" type="time" step="300" :disabled="sold > 0" />
+        <input :id="`${id}-time`" v-model="draft.startTime" class="input" type="time" step="300" :disabled="sold" />
       </div>
       <div class="field">
         <label :for="`${id}-projection`">Proyección</label>
@@ -71,12 +71,12 @@ const save = useMutation({
       </div>
       <div class="field full">
         <label :for="`${id}-room`">Sala</label>
-        <select :id="`${id}-room`" v-model="draft.roomId" class="select" :disabled="sold > 0 || rooms.isPending.value">
+        <select :id="`${id}-room`" v-model="draft.roomId" class="select" :disabled="sold || rooms.isPending.value">
           <option v-for="room in roomOptions" :key="room.id" :value="room.id">Sala {{ room.number }} · {{ room.type.name }} · {{ room.projections.map(p => p.name).join(', ') }}</option>
         </select>
         <p v-if="!roomOptions.some(room => room.id === draft!.roomId)" class="field-error">La sala elegida no proyecta en este formato. Elige otra.</p>
       </div>
-      <label class="check full"><input v-model="draft.active" type="checkbox" :disabled="sold > 0" /> Función activa (a la venta)</label>
+      <label class="check full"><input v-model="draft.active" type="checkbox" :disabled="sold" /> Función activa (a la venta)</label>
       <p class="field-hint full">Al guardar, el servidor revisa que la sala esté libre con {{ store.reference?.limits.cleaningMinutes }} minutos de limpieza entre funciones.</p>
     </form>
     <template #footer>

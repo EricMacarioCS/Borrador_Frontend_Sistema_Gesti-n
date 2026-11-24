@@ -8,7 +8,7 @@ Lo que el frontend del sistema de gestión espera del backend. La fuente ejecuta
 - Dinero: `{ "amount": 8550, "currency": "MXN" }`, en **centavos enteros**. Los `numeric` de la BD se convierten con aritmética decimal, nunca con `double`.
 - Instantes (fechas de registro, actividad, cambios): ISO 8601 **con zona** (`2026-11-24T19:30:00-06:00`). Sin zona se rechaza como `MALFORMED_RESPONSE`.
 - Fechas de negocio: `AAAA-MM-DD`. Horas de función: `HH:MM` locales del complejo, igual que `funcion.hora_inicio`.
-- Listas: `{ "items": [...] }`. Pedidos se paginan: `{ items, total, page, pageSize }`.
+- Listas: `{ "items": [...] }`.
 - Errores: Problem Details (RFC 9457) con `code` estable; la interfaz decide por `code`. En reglas de negocio (`VALIDATION_FAILED`, `RESOURCE_IN_USE`, `SCHEDULE_CONFLICT`, `DUPLICATE`) el `detail` se muestra al usuario, así que debe estar en español y ser claro. `errors` lleva los campos con problema.
 - Encabezados: `X-CSRF-Token` en escrituras, `Idempotency-Key` en las operaciones marcadas, `X-Correlation-Id` en todas.
 - **Concurrencia optimista:** todo registro editable trae `version`. El cliente la reenvía al guardar (`PUT`, y en `DELETE` como `?version=`). Si cambió, `409 VERSION_CONFLICT`. En PostgreSQL puede usarse `xmin` o una columna `version` que se incrementa en cada `UPDATE`.
@@ -31,7 +31,7 @@ Lo que el frontend del sistema de gestión espera del backend. La fuente ejecuta
 ```
 
 - `complexIds: null` = toda la cadena; una lista = solo esos complejos. El servidor filtra lecturas y rechaza escrituras fuera del alcance con `403 FORBIDDEN`.
-- Permisos: `dashboard.view`, `reports.view`, `movies.manage`, `screenings.manage`, `products.manage`, `inventory.adjust`, `content.manage`, `prices.manage`, `promotions.manage`, `orders.view`, `orders.manage`, `complexes.manage`, `employees.manage`, `settings.view`. Un permiso desconocido se ignora en el cliente.
+- Permisos: `dashboard.view`, `movies.manage`, `screenings.manage`, `products.manage`, `content.manage`, `prices.manage`, `promotions.manage`, `complexes.manage`, `employees.manage`, `settings.view`. Un permiso desconocido se ignora en el cliente.
 - Sin sesión: `401 SESSION_REQUIRED`. Sesión vencida (absoluta de 12 horas): `401 SESSION_EXPIRED`. Sin permiso: `403 FORBIDDEN`. Sin CSRF válido: `403 CSRF_INVALID` (el cliente renueva el token con `GET /session` y repite una vez).
 - Crear y editar productos de la cadena exige alcance de toda la cadena (`complexIds: null`).
 
@@ -56,18 +56,13 @@ Lo que el frontend del sistema de gestión espera del backend. La fuente ejecuta
 | `GET`/`PUT /complexes/{id}/ticket-prices` | sesión / `prices.manage` | Hoja de precios completa del complejo con versión. |
 | `GET /product-categories`, `POST` | sesión / `products.manage` + cadena | |
 | `GET /products`, `POST`, `PUT /products/{id}` | sesión / `products.manage` + cadena | Reglas y opciones anidadas; IDs que empiezan con `tmp-` son nuevos. Al cambiar opciones se ajustan los catálogos. |
-| `GET /complexes/{id}/catalog` | sesión | Producto, precio local, disponibilidad, opciones y existencias (`null` sin inventario). |
+| `GET /complexes/{id}/catalog` | sesión | Producto, precio local, disponibilidad y opciones. No hay existencias. |
 | `PUT /complexes/{id}/catalog/{productId}` | `products.manage` | Crea o actualiza. Cada cambio de precio entra en el historial. Una regla obligatoria no puede quedar sin opciones activas. |
 | `DELETE /complexes/{id}/catalog/{productId}?version=` | `products.manage` | |
 | `GET /complexes/{id}/price-history` | sesión | |
-| `POST /complexes/{id}/catalog/{productId}/stock-adjustments` | `inventory.adjust` | `{ version, quantity, reason, note }`. Queda en movimientos con autor. |
-| `GET /complexes/{id}/stock-movements` | sesión | Ajustes, ventas y devoluciones por cancelación. |
+| `PUT /complexes/{id}/catalog/{productId}/availability` | `products.manage` | `{ version, available }`. Marca a mano el producto como disponible o no disponible en ese complejo; no toca precio ni opciones. Queda en la bitácora. |
 | `GET /promotions`, `POST`, `PUT /promotions/{id}` | sesión / `promotions.manage` | |
 | `GET /club-levels`, `PUT /club-levels/{id}` | sesión / `promotions.manage` | |
-| `GET /orders?search&complexId&status&kind&page&pageSize` | `orders.view` | Búsqueda por folio, correo, nombre o ID. |
-| `GET /orders/{id}` | `orders.view` | Incluye `cancellation { allowed, reason, affectedIds }` y pedidos ligados. |
-| `POST /orders/{id}/cancellations` | `orders.manage` | **Idempotente.** `{ reason }`. Cancela en cascada los alimentos ligados que aún no se preparan. Reembolso asíncrono: `refund-pending` → `refunded`. Fuera de plazo: `CANCELLATION_WINDOW_CLOSED`. |
-| `POST /orders/{id}/food-status` | `orders.manage` | Avanza `paid → preparing → ready → delivered`. |
 | `GET`/`PUT /content/home` | sesión / `content.manage` | Películas destacadas (máximo 8). |
 | `GET /banners`, `POST`, `PUT /banners/{id}`, `DELETE /banners/{id}?version=` | sesión / `content.manage` | |
 | `GET`/`PUT /content/faq` | sesión / `content.manage` | Lista completa con versión. |
@@ -75,17 +70,15 @@ Lo que el frontend del sistema de gestión espera del backend. La fuente ejecuta
 | `GET`/`PUT /settings/purchase-rules` | sesión / `content.manage` | Asientos por compra, minutos de apartado, minutos para cancelar, días de cartelera. |
 | `GET /employees`, `POST`, `PUT /employees/{id}` | `employees.manage` | Salario en `salary` (dinero). Los empleados no se borran: se dan de baja. |
 | `GET /roles`, `POST`, `PUT /roles/{id}` | `employees.manage` | |
-| `GET /reports/daily-sales?from&to` | `reports.view` | Un renglón por complejo y día dentro del alcance: boletos, alimentos y otros (dinero), boletos vendidos y transacciones. |
 | `GET /activity?limit` | sesión | Bitácora de cambios: quién, cuándo, área y resumen. |
 
 ## Reglas que el backend debe garantizar
 
 1. **Planeación del lote.** Para cada combinación película × complejo × tipo de sala × proyección × idioma × fecha × hora: usar las salas elegidas o la primera compatible y libre (primero las que admiten menos proyecciones), reservar los minutos de limpieza, detectar traslapes en minutos absolutos (también al cruzar la medianoche), no duplicar una función idéntica, y rechazar fechas fuera de la exhibición u horarios pasados. Al crear se vuelve a planear todo. Tope por lote: `maxScreeningsPerBatch`.
-2. **Funciones con historia.** Una función que ya empezó o tiene boletos no se mueve ni se borra.
+2. **Funciones con historia.** Una función que ya empezó o tiene boletos vendidos no se mueve, no se desactiva ni se borra. La función solo informa `hasTicketsSold` (booleano); la gestión no muestra cuántos boletos se vendieron.
 3. **Plano por función.** Como el disparador `trg_generar_asientos`, el plano de la sala se copia al crear la función; cambiar el plano no altera funciones existentes.
 4. **Precios explícitos.** La hoja de precios se guarda completa; el precio cobrado en una venta no cambia después.
-5. **Cancelación.** Boletos hasta `cancelMinutesBefore` antes de la función; arrastran sus alimentos no preparados; el inventario vendido regresa con un movimiento de tipo `cancellation`.
-6. **Bitácora.** Cada cambio del sistema de gestión queda registrado con el usuario.
+5. **Bitácora.** Cada cambio del sistema de gestión queda registrado con el usuario.
 
 ## Errores (`code`)
 
@@ -102,7 +95,6 @@ Lo que el frontend del sistema de gestión espera del backend. La fuente ejecuta
 | `DUPLICATE` | 409 | Nombre, URL o correo repetido. |
 | `RESOURCE_IN_USE` | 409 | Tiene funciones, boletos u otra dependencia. |
 | `SCHEDULE_CONFLICT` | 409 | La sala está ocupada en ese horario. |
-| `CANCELLATION_WINDOW_CLOSED` | 409 | Fuera del plazo o pedido ya preparado. |
 | `IDEMPOTENCY_CONFLICT` | 409 | Misma clave con otro cuerpo. |
 | `MALFORMED_REQUEST` | 400 | Falta un parámetro o la forma es incorrecta. |
 | `RATE_LIMITED` | 429 | Con `Retry-After`. |

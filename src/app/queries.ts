@@ -4,7 +4,6 @@
  */
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { keepPreviousData, useQuery } from '@tanstack/vue-query'
-import type { OrderQuery } from '@/domain/models'
 import type { ScreeningQuery } from '@/domain/ports'
 import { useServices } from './services'
 
@@ -21,12 +20,8 @@ export const keys = {
   products: () => ['products'] as const,
   catalog: (complexId: string) => ['catalog', complexId] as const,
   priceHistory: (complexId: string) => ['price-history', complexId] as const,
-  movements: (complexId: string) => ['stock-movements', complexId] as const,
   promotions: () => ['promotions'] as const,
   clubLevels: () => ['club-levels'] as const,
-  orders: (query: OrderQuery) => ['orders', query] as const,
-  allOrders: () => ['orders'] as const,
-  order: (id: string) => ['order', id] as const,
   home: () => ['content', 'home'] as const,
   banners: () => ['content', 'banners'] as const,
   faq: () => ['content', 'faq'] as const,
@@ -34,7 +29,6 @@ export const keys = {
   purchaseRules: () => ['content', 'purchase-rules'] as const,
   employees: () => ['employees'] as const,
   roles: () => ['roles'] as const,
-  dailySales: (from: string, to: string) => ['daily-sales', from, to] as const,
   activity: () => ['activity'] as const
 }
 
@@ -118,15 +112,6 @@ export function usePriceHistory(complexId: MaybeRefOrGetter<string | null>, enab
   })
 }
 
-export function useStockMovements(complexId: MaybeRefOrGetter<string | null>, enabled: MaybeRefOrGetter<boolean>) {
-  const { products } = useServices()
-  return useQuery({
-    queryKey: computed(() => keys.movements(toValue(complexId) ?? '')),
-    queryFn: ({ signal }) => products.stockMovements(toValue(complexId)!, signal),
-    enabled: computed(() => Boolean(toValue(complexId)) && toValue(enabled))
-  })
-}
-
 export function usePromotions() {
   const { promotions } = useServices()
   return useQuery({ queryKey: keys.promotions(), queryFn: ({ signal }) => promotions.list(signal) })
@@ -135,27 +120,6 @@ export function usePromotions() {
 export function useClubLevels() {
   const { promotions } = useServices()
   return useQuery({ queryKey: keys.clubLevels(), queryFn: ({ signal }) => promotions.listClubLevels(signal) })
-}
-
-export function useOrders(query: MaybeRefOrGetter<OrderQuery>) {
-  const { orders } = useServices()
-  return useQuery({
-    queryKey: computed(() => keys.orders(toValue(query))),
-    queryFn: ({ signal }) => orders.list(toValue(query), signal),
-    placeholderData: keepPreviousData
-  })
-}
-
-export function useOrder(id: MaybeRefOrGetter<string | null>) {
-  const { orders } = useServices()
-  return useQuery({
-    queryKey: computed(() => keys.order(toValue(id) ?? '')),
-    queryFn: ({ signal }) => orders.get(toValue(id)!, signal),
-    enabled: computed(() => Boolean(toValue(id))),
-    staleTime: 0,
-    // Mientras el reembolso está en proceso se consulta su estado.
-    refetchInterval: query => query.state.data?.status === 'refund-pending' ? 2000 : false
-  })
 }
 
 export function useHomeContent() {
@@ -188,17 +152,7 @@ export function useRoles() {
   return useQuery({ queryKey: keys.roles(), queryFn: ({ signal }) => employees.listRoles(signal), staleTime: 5 * 60_000 })
 }
 
-export function useDailySales(range: MaybeRefOrGetter<{ from: string; to: string }>) {
-  const { reports } = useServices()
-  return useQuery({
-    queryKey: computed(() => keys.dailySales(toValue(range).from, toValue(range).to)),
-    queryFn: ({ signal }) => reports.dailySales(toValue(range).from, toValue(range).to, signal),
-    placeholderData: keepPreviousData,
-    staleTime: 5 * 60_000
-  })
-}
-
 export function useActivity(limit = 8) {
-  const { reports } = useServices()
-  return useQuery({ queryKey: keys.activity(), queryFn: ({ signal }) => reports.activity(limit, signal), staleTime: 0 })
+  const { activity } = useServices()
+  return useQuery({ queryKey: keys.activity(), queryFn: ({ signal }) => activity.list(limit, signal), staleTime: 0 })
 }

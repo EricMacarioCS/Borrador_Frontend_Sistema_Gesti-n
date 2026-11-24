@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { Boxes, FolderPlus, PackageMinus, Pencil, Plus, Search } from '@lucide/vue'
+import { FolderPlus, PackageMinus, Pencil, Plus, Search } from '@lucide/vue'
 import CatalogEntryDialog from './CatalogEntryDialog.vue'
 import ProductDialog from './ProductDialog.vue'
-import StockDialog from './StockDialog.vue'
-import { keys, useCatalog, useCategories, usePriceHistory, useProducts, useStockMovements } from '@/app/queries'
-import { useConfig, useServices } from '@/app/services'
+import { keys, useCatalog, useCategories, usePriceHistory, useProducts } from '@/app/queries'
+import { useServices } from '@/app/services'
 import { useSessionStore } from '@/app/stores/session'
-import { ADJUSTMENT_LABELS, STRUCTURE_LABELS, labelOf } from '@/domain/labels'
+import { STRUCTURE_LABELS } from '@/domain/labels'
 import type { CatalogEntry, Product } from '@/domain/models'
 import BaseDialog from '@/shared/ui/BaseDialog.vue'
 import StateView from '@/shared/ui/StateView.vue'
@@ -17,10 +16,9 @@ import { formatDateTime } from '@/shared/lib/datetime'
 import { formatMoney } from '@/shared/lib/money'
 import { normalizeText } from '@/shared/lib/text'
 
-type Tab = 'catalog' | 'products' | 'history' | 'inventory'
+type Tab = 'catalog' | 'products' | 'history'
 
 const store = useSessionStore()
-const config = useConfig()
 const { products: port } = useServices()
 const queryClient = useQueryClient()
 const tab = ref<Tab>('catalog')
@@ -30,12 +28,10 @@ const category = ref('')
 
 // Solo quien administra toda la cadena define productos; cada complejo decide su catálogo.
 const chainAdmin = computed(() => store.session.complexIds === null)
-const inventory = computed(() => config.features.inventory)
 const catalog = useCatalog(complexId)
 const productsQuery = useProducts()
 const categories = useCategories()
 const history = usePriceHistory(complexId, () => tab.value === 'history')
-const movements = useStockMovements(complexId, () => tab.value === 'inventory')
 watch(complexId, () => { search.value = '' })
 
 const matches = (text: string) => normalizeText(text).includes(normalizeText(search.value))
@@ -50,13 +46,27 @@ const activeOptions = (entry: CatalogEntry) => {
   const total = entry.product.rules.reduce((sum, rule) => sum + rule.options.length, 0)
   return total ? `${entry.optionSettings.filter(s => s.active).length} de ${total}` : '—'
 }
-const status = (entry: CatalogEntry) => !entry.available ? { label: 'No disponible', tone: 'muted' }
-  : inventory.value && entry.stock === 0 ? { label: 'Agotado', tone: 'warning' } : { label: 'Disponible', tone: 'success' }
+
+/* Sin inventario: el personal marca a mano si el producto está disponible en el complejo. */
+const toggling = ref<string | null>(null)
+const setAvailability = useMutation({
+  mutationFn: (entry: CatalogEntry) => port.setAvailability(complexId.value, entry.product.id, entry.version, !entry.available),
+  onMutate: entry => { toggling.value = entry.product.id },
+  onSuccess: updated => {
+    void queryClient.invalidateQueries({ queryKey: keys.catalog(updated.complexId) })
+    void queryClient.invalidateQueries({ queryKey: keys.activity() })
+    toast(`${updated.product.name} quedó ${updated.available ? 'disponible' : 'no disponible'} en ${store.complexName(updated.complexId)}.`)
+  },
+  onError: error => {
+    void queryClient.invalidateQueries({ queryKey: keys.catalog(complexId.value) })
+    toastError(error)
+  },
+  onSettled: () => { toggling.value = null }
+})
 
 /* Ventanas */
 const entryDialog = ref<{ entry: CatalogEntry | null } | null>(null)
 const productDialog = ref<{ product: Product | null } | null>(null)
-const stockEntry = ref<CatalogEntry | null>(null)
 const categoryOpen = ref(false)
 const categoryName = ref('')
 
@@ -112,7 +122,6 @@ const createCategory = useMutation({
       <button type="button" role="tab" :aria-selected="tab === 'catalog'" @click="tab = 'catalog'">Catálogo del complejo</button>
       <button type="button" role="tab" :aria-selected="tab === 'products'" @click="tab = 'products'">Productos de la cadena</button>
       <button type="button" role="tab" :aria-selected="tab === 'history'" @click="tab = 'history'">Historial de precios</button>
-      <button v-if="inventory" type="button" role="tab" :aria-selected="tab === 'inventory'" @click="tab = 'inventory'">Inventario</button>
     </div>
 
     <div class="toolbar">
@@ -141,19 +150,23 @@ const createCategory = useMutation({
         empty-title="Sin productos en este catálogo" empty-text="Agrega productos de la cadena o cambia los filtros." @retry="catalog.refetch()">
         <div class="panel table-wrap">
           <table class="data">
-            <thead><tr><th>Producto</th><th>Categoría</th><th class="num">Precio aquí</th><th>Opciones activas</th><th v-if="inventory" class="num">Existencias</th><th>Estado</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+            <thead><tr><th>Producto</th><th>Categoría</th><th class="num">Precio aquí</th><th>Opciones activas</th><th>Disponible</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
             <tbody>
               <tr v-for="entry in entries" :key="entry.product.id" :class="{ 'row-off': !entry.available }">
                 <td><span class="stack"><strong>{{ entry.product.name }}</strong><small>{{ STRUCTURE_LABELS[entry.product.structure] }}{{ entry.product.requiresTicketCode ? ' · requiere folio' : ' · sin folio' }}</small></span></td>
                 <td>{{ entry.product.category.name }}</td>
                 <td class="num">{{ formatMoney(entry.priceCents) }}</td>
                 <td>{{ activeOptions(entry) }}</td>
-                <td v-if="inventory" class="num">{{ entry.stock }}</td>
-                <td><span class="pill" :class="status(entry).tone">{{ status(entry).label }}</span></td>
+                <td>
+                  <button type="button" role="switch" class="switch" :aria-checked="entry.available" :disabled="toggling === entry.product.id"
+                    :aria-label="`${entry.product.name} disponible en ${store.complexName(complexId)}`" @click="setAvailability.mutate(entry)">
+                    <span class="track" aria-hidden="true"><span class="thumb" /></span>
+                    <span class="switch-label">{{ entry.available ? 'Disponible' : 'No disponible' }}</span>
+                  </button>
+                </td>
                 <td class="actions-col">
                   <div class="row-actions">
                     <button type="button" class="action" :aria-label="`Editar ${entry.product.name}`" @click="entryDialog = { entry }"><Pencil :size="15" /> Precio y opciones</button>
-                    <button v-if="inventory && store.can('inventory.adjust')" type="button" class="action" :aria-label="`Ajustar existencias de ${entry.product.name}`" @click="stockEntry = entry"><Boxes :size="15" /> Existencias</button>
                     <button type="button" class="action danger" :aria-label="`Quitar ${entry.product.name} del catálogo`" @click="remove(entry)"><PackageMinus :size="15" /> Quitar</button>
                   </div>
                 </td>
@@ -206,32 +219,8 @@ const createCategory = useMutation({
       </StateView>
     </template>
 
-    <template v-else>
-      <p class="notice small spaced">El inventario necesita tablas nuevas en la base de datos (existencias y movimientos). Aquí se verán también las ventas y los registros del personal al conectar el backend.</p>
-      <StateView :loading="movements.isPending.value" :error="movements.error.value" :empty="!movements.data.value?.length" skeleton="rows"
-        empty-title="Sin movimientos" empty-text="Los ajustes y cancelaciones de este complejo aparecerán aquí." @retry="movements.refetch()">
-        <div class="panel table-wrap">
-          <table class="data">
-            <thead><tr><th>Fecha</th><th>Producto</th><th class="num">Antes</th><th class="num">Después</th><th>Motivo</th><th>Observaciones</th><th>Registró</th></tr></thead>
-            <tbody>
-              <tr v-for="m in movements.data.value" :key="m.id">
-                <td>{{ formatDateTime(m.at) }}</td>
-                <td><strong>{{ m.productName }}</strong></td>
-                <td class="num">{{ m.before }}</td>
-                <td class="num">{{ m.after }}</td>
-                <td>{{ labelOf(ADJUSTMENT_LABELS, m.reason) }}</td>
-                <td>{{ m.note || '—' }}</td>
-                <td>{{ m.author }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </StateView>
-    </template>
-
     <CatalogEntryDialog :open="!!entryDialog" :complex-id="complexId" :entry="entryDialog?.entry ?? null" :candidates="candidates" @close="entryDialog = null" />
     <ProductDialog :open="!!productDialog" :product="productDialog?.product ?? null" @close="productDialog = null" />
-    <StockDialog :entry="stockEntry" :complex-id="complexId" @close="stockEntry = null" />
     <BaseDialog :open="categoryOpen" label="Nueva categoría" size="small" :dirty="!!categoryName" @close="categoryOpen = false">
       <form id="form-categoria" class="field" @submit.prevent="categoryName.trim() && createCategory.mutate()">
         <label for="categoria-nombre">Nombre</label>
@@ -248,4 +237,12 @@ const createCategory = useMutation({
 <style scoped>
 .toolbar .search svg { top: auto; bottom: 11px; transform: none; }
 .spaced { margin-bottom: 12px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: none; color: var(--ink); font: 600 13px var(--font-body); cursor: pointer; white-space: nowrap; }
+.switch:disabled { cursor: progress; opacity: .6; }
+.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
+.track { position: relative; width: 36px; height: 20px; flex: none; border-radius: 999px; background: var(--line-strong); }
+.thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.switch[aria-checked='true'] .track { background: var(--success); }
+.switch[aria-checked='true'] .thumb { left: 18px; }
+.switch[aria-checked='false'] .switch-label { color: var(--muted); }
 </style>

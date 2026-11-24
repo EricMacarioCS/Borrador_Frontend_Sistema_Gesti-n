@@ -11,10 +11,6 @@ const ConfigSchema = z.object({
   supportEmail: z.string().nullable(),
   /** Minutos sin actividad antes de cerrar la sesión. 0 lo desactiva. */
   idleMinutes: z.number().int().min(0).max(480),
-  features: z.object({
-    /** Existencias y movimientos de inventario: requieren tablas nuevas en la base de datos. */
-    inventory: z.boolean()
-  }),
   mock: z.object({
     latencyMs: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
     failureRate: z.number().min(0).max(1)
@@ -29,7 +25,6 @@ const defaults: AppConfig = {
   environmentName: 'local',
   supportEmail: null,
   idleMinutes: 30,
-  features: { inventory: true },
   mock: { latencyMs: [80, 300], failureRate: 0 }
 }
 
@@ -50,7 +45,6 @@ export async function loadConfig(): Promise<AppConfig> {
   }
   const merged = {
     ...defaults, ...raw,
-    features: { ...defaults.features, ...raw.features },
     mock: { ...defaults.mock, ...raw.mock }
   }
   const parsed = ConfigSchema.safeParse(merged)

@@ -31,9 +31,8 @@ export function oneOf<T extends string>(value: string, allowed: readonly T[], fa
 }
 
 const PERMISSIONS: readonly M.Permission[] = [
-  'dashboard.view', 'reports.view', 'movies.manage', 'screenings.manage', 'products.manage', 'inventory.adjust',
-  'content.manage', 'prices.manage', 'promotions.manage', 'orders.view', 'orders.manage', 'complexes.manage',
-  'employees.manage', 'settings.view'
+  'dashboard.view', 'movies.manage', 'screenings.manage', 'products.manage', 'content.manage', 'prices.manage',
+  'promotions.manage', 'complexes.manage', 'employees.manage', 'settings.view'
 ]
 
 export function toSession(dto: Out<typeof S.SessionDto>): M.Session {
@@ -76,7 +75,7 @@ export const toScreening = (dto: Out<typeof S.ScreeningDto>): M.Screening => ({
   id: dto.id, version: dto.version, movieId: dto.movieId, movieTitle: dto.movieTitle, complexId: dto.complexId,
   roomId: dto.room.id, roomNumber: dto.room.number, roomType: dto.room.type, projection: dto.projection, language: dto.language,
   date: dto.date, startTime: dto.startTime, endTime: dto.endTime, endsNextDay: dto.endsNextDay,
-  isPresale: dto.isPresale, active: dto.active, ticketsSold: dto.ticketsSold
+  isPresale: dto.isPresale, active: dto.active, hasTicketsSold: dto.hasTicketsSold
 })
 
 export const toSchedulePlan = (dto: Out<typeof S.SchedulePlanDto>): M.SchedulePlan => ({
@@ -114,7 +113,7 @@ export const fromProduct = (input: M.ProductInput & { version?: number }) => ({
 
 export const toCatalogEntry = (dto: Out<typeof S.CatalogEntryDto>): M.CatalogEntry => ({
   complexId: dto.complexId, version: dto.version, product: toProduct(dto.product), priceCents: cents(dto.price),
-  available: dto.available, stock: dto.stock,
+  available: dto.available,
   optionSettings: dto.optionSettings.map(setting => ({ optionId: setting.optionId, active: setting.active, extraCents: cents(setting.extra) }))
 })
 
@@ -126,8 +125,6 @@ export const fromCatalogEntry = (input: M.CatalogEntryInput) => ({
 export const toPriceChange = (dto: Out<typeof S.PriceChangeDto>): M.PriceChange => ({
   id: dto.id, productName: dto.productName, previousCents: cents(dto.previous), newCents: cents(dto.current), changedAt: parseInstant(dto.changedAt)
 })
-
-export const toStockMovement = (dto: Out<typeof S.StockMovementDto>): M.StockMovement => ({ ...dto, at: parseInstant(dto.at) })
 
 export const toTicketType = (dto: Out<typeof S.TicketTypeDto>): M.TicketType => ({
   id: dto.id, version: dto.version, name: dto.name, description: dto.description, isPromotional: dto.isPromotional,
@@ -143,33 +140,6 @@ export const toPromotion = (dto: Out<typeof S.PromotionDto>): M.Promotion => dto
 
 export const toClubLevel = (dto: Out<typeof S.ClubLevelDto>): M.ClubLevel => dto
 
-const ORDER_STATUSES: readonly M.OrderStatus[] = ['payment-pending', 'confirmed', 'payment-failed', 'refund-pending', 'refunded', 'cancelled']
-const FOOD_STATUSES: readonly M.FoodStatus[] = ['paid', 'preparing', 'ready', 'delivered']
-const REFUND_STATUSES = ['none', 'requested', 'processing', 'completed', 'failed'] as const
-const kindOf = (value: string) => value === 'food' ? 'food' as const : 'tickets' as const
-
-export const toOrderSummary = (dto: Out<typeof S.OrderSummaryDto>): M.OrderSummary => ({
-  id: dto.id, ticketCode: dto.ticketCode, linkedTicketCode: dto.linkedTicketCode, kind: kindOf(dto.kind),
-  status: oneOf(dto.status, ORDER_STATUSES, 'payment-pending', 'order.status'),
-  foodStatus: dto.foodStatus === null ? null : oneOf(dto.foodStatus, FOOD_STATUSES, 'paid', 'order.foodStatus'),
-  channel: dto.channel === 'box-office' ? 'box-office' : 'online',
-  complexId: dto.complex.id, complexName: dto.complex.name, customerName: dto.customer.name, customerEmail: dto.customer.email,
-  createdAt: parseInstant(dto.createdAt), totalCents: cents(dto.total)
-})
-
-export const toOrderDetail = (dto: Out<typeof S.OrderDetailDto>): M.OrderDetail => ({
-  ...toOrderSummary(dto),
-  screening: dto.screening,
-  tickets: dto.tickets.map(t => ({ seat: t.seat, ticketType: t.ticketType, priceCents: cents(t.price) })),
-  items: dto.items.map(i => ({ name: i.name, detail: i.detail, quantity: i.quantity, totalCents: cents(i.total) })),
-  pickup: dto.pickup, paymentMethod: dto.paymentMethod,
-  totals: { subtotalCents: cents(dto.totals.subtotal), discountCents: cents(dto.totals.discount), serviceFeeCents: cents(dto.totals.serviceFee), totalCents: cents(dto.totals.total) },
-  promotionName: dto.promotionName, cancellation: dto.cancellation,
-  refund: { status: oneOf(dto.refund.status, REFUND_STATUSES, 'none', 'refund.status'), amountCents: cents(dto.refund.amount) },
-  cancelReason: dto.cancelReason,
-  linkedOrders: dto.linkedOrders.map(o => ({ id: o.id, ticketCode: o.ticketCode, kind: kindOf(o.kind), status: oneOf(o.status, ORDER_STATUSES, 'payment-pending', 'linked.status') }))
-})
-
 export const toBanner = (dto: Out<typeof S.BannerDto>): M.Banner => dto
 
 export const toRole = (dto: Out<typeof S.RoleDto>): M.Role => dto
@@ -182,10 +152,5 @@ export const toEmployee = (dto: Out<typeof S.EmployeeDto>): M.Employee => ({
 })
 
 export const fromEmployee = ({ salaryCents, ...rest }: M.EmployeeInput & { version?: number }) => ({ ...rest, salary: money(salaryCents) })
-
-export const toDailySales = (dto: Out<typeof S.DailySalesDto>): M.DailySales => ({
-  date: dto.date, complexId: dto.complexId, ticketsCents: cents(dto.tickets), foodCents: cents(dto.food), otherCents: cents(dto.other),
-  ticketCount: dto.ticketCount, transactions: dto.transactions
-})
 
 export const toActivity = (dto: Out<typeof S.ActivityDto>): M.Activity => ({ ...dto, at: parseInstant(dto.at) })

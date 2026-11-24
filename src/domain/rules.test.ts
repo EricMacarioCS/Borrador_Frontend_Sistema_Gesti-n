@@ -39,9 +39,9 @@ describe('reglas del dominio', () => {
   })
 
   it('permisos y alcance', () => {
-    const session: Session = { user: null, permissions: ['orders.view'], complexIds: ['a'], csrfToken: null }
-    expect(can(session, 'orders.view')).toBe(true)
-    expect(can(session, 'orders.manage')).toBe(false)
+    const session: Session = { user: null, permissions: ['screenings.manage'], complexIds: ['a'], csrfToken: null }
+    expect(can(session, 'screenings.manage')).toBe(true)
+    expect(can(session, 'prices.manage')).toBe(false)
     expect(canManageComplex(session, 'a')).toBe(true)
     expect(canManageComplex(session, 'b')).toBe(false)
     expect(canManageComplex({ ...session, complexIds: null }, 'b')).toBe(true)

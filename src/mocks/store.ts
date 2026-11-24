@@ -4,7 +4,9 @@
  */
 import type { Permission } from '@/domain/models'
 
-const KEY = 'cp-admin-mock-v1'
+const KEY = 'cp-admin-mock-v2'
+/** Versión anterior del estado (con pedidos e inventario). Se borra al cargar. */
+const OLD_KEY = 'cp-admin-mock-v1'
 const SESSION_KEY = 'cp-admin-mock-session'
 
 export interface ComplexRec {
@@ -31,25 +33,15 @@ export interface ProductRec {
 }
 export interface CatalogRec {
   productId: string; version: number; priceCents: number; available: boolean
-  options: { optionId: string; active: boolean; extraCents: number }[]; stock: number
+  options: { optionId: string; active: boolean; extraCents: number }[]
 }
 export interface PriceChangeRec { id: string; productId: string; previousCents: number; newCents: number; changedAt: string }
-export interface MovementRec { id: string; productId: string; before: number; after: number; reason: string; note: string; author: string; at: string }
 export interface PromotionRec {
   id: string; version: number; name: string; kind: string; description: string; restrictions: string; validFrom: string; validTo: string | null
   appliesToAll: boolean; complexIds: string[]; clubLevelId: string | null
   rules: { weekdays: number[]; roomTypes: string[]; projections: string[]; percent: number | null }
 }
 export interface ClubLevelRec { id: string; version: number; name: string; minVisits: number; maxVisits: number | null; pointsPercent: number; benefits: string }
-export interface OrderRec {
-  id: string; ticketCode: string | null; linkedTicketCode: string | null; kind: 'tickets' | 'food'; status: string
-  foodStatus: string | null; channel: string; complexId: string; customerName: string; customerEmail: string; createdAt: string
-  screeningId: string | null; tickets: { seat: string; ticketType: string; priceCents: number }[]
-  items: { productId: string; name: string; detail: string; quantity: number; totalCents: number }[]
-  pickup: 'before' | 'during' | null; paymentMethod: string
-  subtotalCents: number; discountCents: number; serviceFeeCents: number; totalCents: number; promotionName: string | null
-  cancelReason: string | null; refund: { status: string; amountCents: number; completeAt: number | null }
-}
 export interface BannerRec {
   id: string; version: number; title: string; imageUrl: string; targetUrl: string; startsOn: string; endsOn: string | null
   active: boolean; appliesToAll: boolean; complexIds: string[]
@@ -62,7 +54,7 @@ export interface EmployeeRec {
 export interface ActivityRec { id: string; at: string; actor: string; area: string; summary: string }
 
 export interface MockState {
-  v: 1
+  v: 2
   seq: number
   seededOn: string
   sessions: Record<string, { csrf: string; userId: string | null; startedAt: number }>
@@ -78,10 +70,10 @@ export interface MockState {
   products: ProductRec[]
   catalogs: Record<string, CatalogRec[]>
   priceHistory: Record<string, PriceChangeRec[]>
-  movements: Record<string, MovementRec[]>
   promotions: PromotionRec[]
   clubLevels: ClubLevelRec[]
-  orders: OrderRec[]
+  /** Boletos vendidos por función. Los registra el sitio web; la gestión solo los consulta para proteger la función. */
+  ticketSales: Record<string, number>
   banners: BannerRec[]
   home: { version: number; featuredMovieIds: string[] }
   faq: { version: number; items: { question: string; answer: string }[] }
@@ -101,10 +93,13 @@ let memorySid: string | null = null
 
 export function load(seed: () => MockState): MockState {
   let raw: string | null = memory
-  try { raw = localStorage.getItem(KEY) ?? memory } catch { /* Sin acceso: memoria. */ }
+  try {
+    raw = localStorage.getItem(KEY) ?? memory
+    localStorage.removeItem(OLD_KEY)
+  } catch { /* Sin acceso: memoria. */ }
   try {
     const parsed = raw ? JSON.parse(raw) as MockState : null
-    if (parsed?.v === 1) return parsed
+    if (parsed?.v === 2) return parsed
   } catch { /* Dato dañado: se regenera. */ }
   const fresh = seed()
   save(fresh)

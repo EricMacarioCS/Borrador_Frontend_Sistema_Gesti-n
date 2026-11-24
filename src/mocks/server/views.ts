@@ -1,12 +1,12 @@
 /** Conversión del estado del simulador al JSON del contrato (`src/adapters/http/schemas.ts`). */
 import type {
-  CatalogEntryJson, ComplexJson, EmployeeJson, MovieJson, OrderDetailJson, OrderSummaryJson, ProductJson, RoomJson, ScreeningJson,
+  CatalogEntryJson, ComplexJson, EmployeeJson, MovieJson, ProductJson, RoomJson, ScreeningJson,
   SeatTemplateJson
 } from '@/adapters/http/schemas'
 import { endTime } from '@/domain/rules'
-import { dateInZone, formatTime, zonedInstant } from '@/shared/lib/datetime'
+import { dateInZone, formatTime } from '@/shared/lib/datetime'
 import { CITIES, LANGUAGES, PROJECTIONS, ROOM_TYPES, SEAT_SHAPES, TIME_ZONE, today } from '../fixtures'
-import type { CatalogRec, EmployeeRec, MockState, MovieRec, OrderRec, ProductRec, RoomRec, ScreeningRec, TemplateRec } from '../store'
+import type { CatalogRec, EmployeeRec, MockState, MovieRec, ProductRec, RoomRec, ScreeningRec, TemplateRec } from '../store'
 import { money } from './core'
 
 export const roomTypeLabel = (code: string) => ({ code, name: ROOM_TYPES.find(type => type.code === code)?.name ?? code })
@@ -70,8 +70,6 @@ export function upcoming(state: MockState, now: number, filter: (s: ScreeningRec
   return state.screenings.filter(s => filter(s) && (s.date > date || (s.date === date && s.startTime > time)))
 }
 
-export const startsAt = (screening: ScreeningRec) => zonedInstant(screening.date, screening.startTime, TIME_ZONE).getTime()
-
 export function movieJson(state: MockState, movie: MovieRec, now: number): MovieJson {
   return {
     id: movie.id, version: movie.version, title: movie.title, slug: movie.slug, rating: movie.rating, genres: movie.genres,
@@ -82,10 +80,9 @@ export function movieJson(state: MockState, movie: MovieRec, now: number): Movie
   }
 }
 
+/** Boletos vendidos por el sitio web para la función. */
 export function ticketsSold(state: MockState, screeningId: string) {
-  return state.orders
-    .filter(order => order.screeningId === screeningId && ['confirmed', 'payment-pending'].includes(order.status))
-    .reduce((sum, order) => sum + order.tickets.length, 0)
+  return state.ticketSales[screeningId] ?? 0
 }
 
 export function screeningJson(state: MockState, screening: ScreeningRec): ScreeningJson {
@@ -99,7 +96,7 @@ export function screeningJson(state: MockState, screening: ScreeningRec): Screen
     projection: projectionLabel(screening.projection), language: languageLabel(screening.language),
     date: screening.date, startTime: screening.startTime, endTime: end.time, endsNextDay: end.nextDay,
     isPresale: Boolean(movie?.releaseDate && screening.date >= movie.releaseDate && movie.presaleFrom && today() < movie.releaseDate),
-    active: screening.active, ticketsSold: ticketsSold(state, screening.id)
+    active: screening.active, hasTicketsSold: ticketsSold(state, screening.id) > 0
   }
 }
 
@@ -116,77 +113,11 @@ export function productJson(state: MockState, product: ProductRec): ProductJson 
   }
 }
 
-export function catalogJson(state: MockState, complexId: string, entry: CatalogRec, inventory: boolean): CatalogEntryJson {
+export function catalogJson(state: MockState, complexId: string, entry: CatalogRec): CatalogEntryJson {
   const product = state.products.find(p => p.id === entry.productId)!
   return {
     complexId, version: entry.version, product: productJson(state, product), price: money(entry.priceCents), available: entry.available,
-    optionSettings: entry.options.map(option => ({ optionId: option.optionId, active: option.active, extra: money(option.extraCents) })),
-    stock: inventory ? entry.stock : null
-  }
-}
-
-/** El reembolso simulado termina unos segundos después de pedirlo. */
-export function settleRefunds(state: MockState, now: number) {
-  for (const order of state.orders) {
-    if (order.status === 'refund-pending' && order.refund.completeAt !== null && order.refund.completeAt <= now) {
-      order.status = 'refunded'
-      order.refund = { ...order.refund, status: 'completed', completeAt: null }
-    }
-  }
-}
-
-export function orderSummaryJson(state: MockState, order: OrderRec): OrderSummaryJson {
-  return {
-    id: order.id, ticketCode: order.ticketCode, linkedTicketCode: order.linkedTicketCode, kind: order.kind, status: order.status,
-    foodStatus: order.foodStatus, channel: order.channel,
-    complex: { id: order.complexId, name: state.complexes.find(c => c.id === order.complexId)?.name ?? '' },
-    customer: { name: order.customerName, email: order.customerEmail }, createdAt: order.createdAt, total: money(order.totalCents)
-  }
-}
-
-export function linkedOrders(state: MockState, order: OrderRec) {
-  return state.orders.filter(other => other.id !== order.id && (
-    (order.ticketCode && other.linkedTicketCode === order.ticketCode) || (order.linkedTicketCode && other.ticketCode === order.linkedTicketCode)
-  ))
-}
-
-/** Qué se cancela con este pedido: los boletos arrastran a sus alimentos que aún no se preparan. */
-export function cancellationOf(state: MockState, order: OrderRec, now: number): { allowed: boolean; reason: string | null; affected: OrderRec[] } {
-  if (!['confirmed'].includes(order.status)) return { allowed: false, reason: 'Solo se cancelan pedidos pagados.', affected: [] }
-  if (order.kind === 'tickets') {
-    const screening = state.screenings.find(s => s.id === order.screeningId)
-    if (screening) {
-      if (startsAt(screening) - now < state.rules.cancelMinutesBefore * 60_000) {
-        return { allowed: false, reason: `Los boletos se cancelan hasta ${state.rules.cancelMinutesBefore} minutos antes de la función.`, affected: [] }
-      }
-    }
-    const food = linkedOrders(state, order).filter(other => other.kind === 'food' && other.status === 'confirmed' && other.foodStatus === 'paid')
-    return { allowed: true, reason: null, affected: [order, ...food] }
-  }
-  if (order.foodStatus !== 'paid') return { allowed: false, reason: 'El pedido ya se empezó a preparar o se entregó.', affected: [] }
-  return { allowed: true, reason: null, affected: [order] }
-}
-
-export function orderDetailJson(state: MockState, order: OrderRec, now: number): OrderDetailJson {
-  const screening = state.screenings.find(s => s.id === order.screeningId)
-  const room = screening ? state.rooms.find(r => r.id === screening.roomId) : undefined
-  const movie = screening ? state.movies.find(m => m.id === screening.movieId) : undefined
-  const cancellation = cancellationOf(state, order, now)
-  return {
-    ...orderSummaryJson(state, order),
-    screening: screening && room ? {
-      movieTitle: movie?.title ?? 'Película retirada', date: screening.date, startTime: screening.startTime,
-      room: `Sala ${room.number} · ${roomTypeLabel(room.type).name}`, projection: projectionLabel(screening.projection).name, language: languageLabel(screening.language).name
-    } : null,
-    tickets: order.tickets.map(t => ({ seat: t.seat, ticketType: t.ticketType, price: money(t.priceCents) })),
-    items: order.items.map(i => ({ name: i.name, detail: i.detail, quantity: i.quantity, total: money(i.totalCents) })),
-    pickup: order.pickup, paymentMethod: order.paymentMethod,
-    totals: { subtotal: money(order.subtotalCents), discount: money(order.discountCents), serviceFee: money(order.serviceFeeCents), total: money(order.totalCents) },
-    promotionName: order.promotionName,
-    cancellation: { allowed: cancellation.allowed, reason: cancellation.reason, affectedIds: cancellation.affected.map(o => o.id) },
-    refund: { status: order.refund.status, amount: money(order.refund.amountCents) },
-    cancelReason: order.cancelReason,
-    linkedOrders: linkedOrders(state, order).map(o => ({ id: o.id, ticketCode: o.ticketCode, kind: o.kind, status: o.status }))
+    optionSettings: entry.options.map(option => ({ optionId: option.optionId, active: option.active, extra: money(option.extraCents) }))
   }
 }
 

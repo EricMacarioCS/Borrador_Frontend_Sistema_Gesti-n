@@ -1,7 +1,6 @@
 import type { Component } from 'vue'
 import {
-  BadgePercent, Building2, CalendarDays, ChartNoAxesCombined, Clapperboard, LayoutDashboard, PanelsTopLeft, Popcorn,
-  ReceiptText, Settings, Tags, Users
+  BadgePercent, Building2, CalendarDays, Clapperboard, LayoutDashboard, PanelsTopLeft, Popcorn, Settings, Tags, Users
 } from '@lucide/vue'
 import type { Permission } from '@/domain/models'
 
@@ -23,11 +22,9 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'content', path: '/contenido', label: 'Contenido web', group: 'Cartelera', icon: PanelsTopLeft, permission: 'content.manage' },
   { name: 'prices', path: '/tarifas', label: 'Tarifas', group: 'Comercial', icon: Tags, permission: 'prices.manage' },
   { name: 'promotions', path: '/promociones', label: 'Promociones y Club', group: 'Comercial', icon: BadgePercent, permission: 'promotions.manage' },
-  { name: 'orders', path: '/pedidos', label: 'Pedidos', group: 'Comercial', icon: ReceiptText, permission: 'orders.view' },
   { name: 'complexes', path: '/complejos', label: 'Complejos y salas', group: 'Operación', icon: Building2, permission: 'complexes.manage' },
   { name: 'employees', path: '/empleados', label: 'Empleados', group: 'Operación', icon: Users, permission: 'employees.manage' },
-  { name: 'reports', path: '/reportes', label: 'Reportes e ingresos', group: 'Análisis', icon: ChartNoAxesCombined, permission: 'reports.view' },
-  { name: 'settings', path: '/configuracion', label: 'Configuración', group: 'Análisis', icon: Settings, permission: 'settings.view' }
+  { name: 'settings', path: '/configuracion', label: 'Configuración', group: 'Sistema', icon: Settings, permission: 'settings.view' }
 ]
 
 export const NAV_GROUPS = [...new Set(NAV_ITEMS.map(item => item.group))]

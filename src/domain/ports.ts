@@ -3,11 +3,10 @@
  * (API real) y el mismo adaptador sobre el simulador de `src/mocks`. Las vistas solo conocen estas interfaces.
  */
 import type {
-  Activity, AdjustmentReason, Banner, BannerInput, CatalogEntry, CatalogEntryInput, ClubLevel, DailySales, Employee,
-  EmployeeInput, FaqContent, HomeContent, Id, InfoPage, Movie, MovieInput, OrderDetail, OrderQuery, OrderSummary,
-  Page, PriceChange, PriceSheet, Product, ProductCategory, ProductInput, Promotion, PromotionInput, PurchaseRules,
-  ReferenceData, Role, Room, Complex, Screening, ScreeningUpdate, ScheduleRequest, SchedulePlan, SeatTemplate,
-  Session, StockMovement, TicketPrice, TicketType
+  Activity, Banner, BannerInput, CatalogEntry, CatalogEntryInput, ClubLevel, Employee, EmployeeInput, FaqContent,
+  HomeContent, Id, InfoPage, Movie, MovieInput, PriceChange, PriceSheet, Product, ProductCategory, ProductInput,
+  Promotion, PromotionInput, PurchaseRules, ReferenceData, Role, Room, Complex, Screening, ScreeningUpdate,
+  ScheduleRequest, SchedulePlan, SeatTemplate, Session, TicketPrice, TicketType
 } from './models'
 
 export interface AuthPort {
@@ -67,9 +66,9 @@ export interface ProductsPort {
   catalog(complexId: Id, signal?: AbortSignal): Promise<CatalogEntry[]>
   saveCatalogEntry(complexId: Id, productId: Id, input: CatalogEntryInput): Promise<CatalogEntry>
   removeCatalogEntry(complexId: Id, productId: Id, version: number): Promise<void>
+  /** Marca a mano si el producto se vende en ese complejo. No toca precio ni opciones. */
+  setAvailability(complexId: Id, productId: Id, version: number, available: boolean): Promise<CatalogEntry>
   priceHistory(complexId: Id, signal?: AbortSignal): Promise<PriceChange[]>
-  adjustStock(complexId: Id, productId: Id, input: { version: number; quantity: number; reason: AdjustmentReason; note: string }): Promise<CatalogEntry>
-  stockMovements(complexId: Id, signal?: AbortSignal): Promise<StockMovement[]>
 }
 
 export interface PromotionsPort {
@@ -78,13 +77,6 @@ export interface PromotionsPort {
   update(id: Id, input: PromotionInput & { version: number }): Promise<Promotion>
   listClubLevels(signal?: AbortSignal): Promise<ClubLevel[]>
   saveClubLevel(level: ClubLevel): Promise<ClubLevel>
-}
-
-export interface OrdersPort {
-  list(query: OrderQuery, signal?: AbortSignal): Promise<Page<OrderSummary>>
-  get(id: Id, signal?: AbortSignal): Promise<OrderDetail>
-  cancel(id: Id, reason: string, idempotencyKey: string): Promise<OrderDetail>
-  advanceFood(id: Id): Promise<OrderDetail>
 }
 
 export interface ContentPort {
@@ -110,9 +102,9 @@ export interface EmployeesPort {
   saveRole(role: Omit<Role, 'id'> & { id: Id | null }): Promise<Role>
 }
 
-export interface ReportsPort {
-  dailySales(from: string, to: string, signal?: AbortSignal): Promise<DailySales[]>
-  activity(limit: number, signal?: AbortSignal): Promise<Activity[]>
+export interface ActivityPort {
+  /** Últimos cambios hechos en el sistema (bitácora). */
+  list(limit: number, signal?: AbortSignal): Promise<Activity[]>
 }
 
 export interface Services {
@@ -125,8 +117,7 @@ export interface Services {
   prices: PricesPort
   products: ProductsPort
   promotions: PromotionsPort
-  orders: OrdersPort
   content: ContentPort
   employees: EmployeesPort
-  reports: ReportsPort
+  activity: ActivityPort
 }

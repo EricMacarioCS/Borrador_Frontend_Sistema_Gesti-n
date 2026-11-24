@@ -42,7 +42,6 @@ const version = __APP_VERSION__
           <div><dt>Nombre</dt><dd>{{ config.environmentName }}</dd></div>
           <div><dt>Datos</dt><dd><span class="pill" :class="services.mode === 'mock' ? 'warning' : 'success'">{{ services.mode === 'mock' ? 'Simulados en el navegador' : 'API conectada' }}</span></dd></div>
           <div><dt>API</dt><dd><code>{{ config.apiBaseUrl }}</code></dd></div>
-          <div><dt>Inventario</dt><dd>{{ config.features.inventory ? 'Habilitado' : 'Deshabilitado (faltan tablas en la base de datos)' }}</dd></div>
           <div><dt>Versión</dt><dd>{{ version }}</dd></div>
           <div v-if="config.supportEmail"><dt>Soporte</dt><dd><a :href="`mailto:${config.supportEmail}`">{{ config.supportEmail }}</a></dd></div>
         </dl>

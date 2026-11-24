@@ -38,7 +38,7 @@ const days = computed(() => {
 })
 /** Una función que ya empezó es historia: no se edita ni se retira. */
 const started = (s: Screening) => s.date < today || (s.date === today && s.startTime <= store.nowTime())
-const removable = computed(() => shown.value.filter(s => s.ticketsSold === 0 && !started(s)))
+const removable = computed(() => shown.value.filter(s => !s.hasTicketsSold && !started(s)))
 const allChecked = computed(() => removable.value.length > 0 && removable.value.every(s => selected.value.includes(s.id)))
 
 function toggleAll(checked: boolean) {
@@ -130,25 +130,24 @@ async function retire(ids: string[]) {
           <thead>
             <tr>
               <th><input type="checkbox" :checked="allChecked" aria-label="Seleccionar todas las que se pueden retirar" @change="toggleAll(($event.target as HTMLInputElement).checked)" /></th>
-              <th>Horario</th><th>Película</th><th>Complejo</th><th>Sala</th><th>Proyección</th><th class="num">Vendidos</th><th>Estado</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th>
+              <th>Horario</th><th>Película</th><th>Complejo</th><th>Sala</th><th>Proyección</th><th>Estado</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th>
             </tr>
           </thead>
           <tbody v-for="[date, items] in days" :key="date">
-            <tr class="day"><th colspan="9" scope="colgroup">{{ formatDate(date) }}<span v-if="date === today"> · Hoy</span></th></tr>
+            <tr class="day"><th colspan="8" scope="colgroup">{{ formatDate(date) }}<span v-if="date === today"> · Hoy</span></th></tr>
             <tr v-for="s in items" :key="s.id" :class="{ 'row-off': !s.active }">
-              <td><input type="checkbox" :value="s.id" :checked="selected.includes(s.id)" :disabled="s.ticketsSold > 0 || started(s)" :aria-label="`Seleccionar ${s.movieTitle} ${s.startTime}`"
+              <td><input type="checkbox" :value="s.id" :checked="selected.includes(s.id)" :disabled="s.hasTicketsSold || started(s)" :aria-label="`Seleccionar ${s.movieTitle} ${s.startTime}`"
                 @change="selected = ($event.target as HTMLInputElement).checked ? [...selected, s.id] : selected.filter(id => id !== s.id)" /></td>
               <td class="time">{{ s.startTime }} – {{ s.endTime }}<small v-if="s.endsNextDay"> (+1 día)</small></td>
               <td><span class="stack"><strong>{{ s.movieTitle }}</strong><small>{{ s.language.name }}</small></span></td>
               <td>{{ store.complexName(s.complexId) }}</td>
               <td>Sala {{ s.roomNumber }} · {{ s.roomType.name }}</td>
               <td><span class="tag">{{ s.projection.name }}</span></td>
-              <td class="num">{{ s.ticketsSold }}</td>
               <td><span class="pill" :class="started(s) ? 'muted' : s.active ? 'success' : 'warning'">{{ started(s) ? 'Ya empezó' : s.active ? 'A la venta' : 'Inactiva' }}</span></td>
               <td class="actions-col">
                 <div class="row-actions">
                   <button type="button" class="action" :disabled="started(s)" :aria-label="`Editar ${s.movieTitle}, ${s.startTime}`" @click="editing = s"><Pencil :size="15" /> Editar</button>
-                  <button type="button" class="action danger" :disabled="s.ticketsSold > 0 || started(s)" :title="s.ticketsSold ? 'Tiene boletos vendidos' : undefined"
+                  <button type="button" class="action danger" :disabled="s.hasTicketsSold || started(s)" :title="s.hasTicketsSold ? 'Tiene boletos vendidos' : undefined"
                     :aria-label="`Retirar ${s.movieTitle}, ${s.startTime}`" @click="retire([s.id])"><Trash2 :size="15" /> Retirar</button>
                 </div>
               </td>

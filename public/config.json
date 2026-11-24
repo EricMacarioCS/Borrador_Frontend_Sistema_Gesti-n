@@ -2,9 +2,6 @@
   "environmentName": "local",
   "supportEmail": null,
   "idleMinutes": 30,
-  "features": {
-    "inventory": true
-  },
   "mock": {
     "latencyMs": [80, 300],
     "failureRate": 0

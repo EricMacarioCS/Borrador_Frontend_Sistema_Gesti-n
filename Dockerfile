@@ -21,8 +21,7 @@ ENV API_MODE=http \
     API_BASE_URL=/api/admin/v1 \
     ENVIRONMENT_NAME=production \
     SUPPORT_EMAIL= \
-    IDLE_MINUTES=30 \
-    FEATURE_INVENTORY=false
+    IDLE_MINUTES=30
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1

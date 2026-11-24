@@ -20,7 +20,6 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   DUPLICATE: 'Ya existe un registro con esos datos.',
   RESOURCE_IN_USE: 'No se puede porque está en uso.',
   SCHEDULE_CONFLICT: 'El horario choca con otra función de la sala.',
-  CANCELLATION_WINDOW_CLOSED: 'El plazo para cancelar ya terminó.',
   IDEMPOTENCY_CONFLICT: 'Esta operación ya se envió con otros datos. Recarga la página.'
 }
 

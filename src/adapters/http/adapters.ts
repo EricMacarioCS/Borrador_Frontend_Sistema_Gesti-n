@@ -173,12 +173,11 @@ export function createHttpAdapters(options: HttpAdapterOptions): Omit<Services, 
       async removeCatalogEntry(complexId, productId, version) {
         await http.delete(path('/complexes/{id}/catalog/{productId}', complexId, productId), { query: { version } })
       },
-      priceHistory: (complexId, signal) => list(path('/complexes/{id}/price-history', complexId), S.PriceChangeDto, M.toPriceChange, 'price-history', { signal }),
-      async adjustStock(complexId, productId, input) {
-        const body = await http.post(path('/complexes/{id}/catalog/{productId}/stock-adjustments', complexId, productId), { body: input })
+      async setAvailability(complexId, productId, version, available) {
+        const body = await http.put(path('/complexes/{id}/catalog/{productId}/availability', complexId, productId), { body: { version, available } })
         return M.toCatalogEntry(M.parse(S.CatalogEntryDto, body, 'catalog-entry'))
       },
-      stockMovements: (complexId, signal) => list(path('/complexes/{id}/stock-movements', complexId), S.StockMovementDto, M.toStockMovement, 'stock-movements', { signal })
+      priceHistory: (complexId, signal) => list(path('/complexes/{id}/price-history', complexId), S.PriceChangeDto, M.toPriceChange, 'price-history', { signal })
     },
 
     promotions: {
@@ -192,24 +191,6 @@ export function createHttpAdapters(options: HttpAdapterOptions): Omit<Services, 
       listClubLevels: signal => list('/club-levels', S.ClubLevelDto, M.toClubLevel, 'club-levels', { signal }),
       async saveClubLevel(level) {
         return M.toClubLevel(M.parse(S.ClubLevelDto, await http.put(path('/club-levels/{id}', level.id), { body: level }), 'club-level'))
-      }
-    },
-
-    orders: {
-      async list(query, signal) {
-        const body = await http.get('/orders', { signal, query: { ...query } })
-        const page = M.parse(S.OrderPageDto, body, 'orders')
-        return { ...page, items: page.items.map(M.toOrderSummary) }
-      },
-      async get(id, signal) {
-        return M.toOrderDetail(M.parse(S.OrderDetailDto, await http.get(path('/orders/{id}', id), { signal }), 'order'))
-      },
-      async cancel(id, reason, idempotencyKey) {
-        const body = await http.post(path('/orders/{id}/cancellations', id), { body: { reason }, idempotencyKey })
-        return M.toOrderDetail(M.parse(S.OrderDetailDto, body, 'order'))
-      },
-      async advanceFood(id) {
-        return M.toOrderDetail(M.parse(S.OrderDetailDto, await http.post(path('/orders/{id}/food-status', id)), 'order'))
       }
     },
 
@@ -264,9 +245,8 @@ export function createHttpAdapters(options: HttpAdapterOptions): Omit<Services, 
       }
     },
 
-    reports: {
-      dailySales: (from, to, signal) => list('/reports/daily-sales', S.DailySalesDto, M.toDailySales, 'daily-sales', { signal, query: { from, to } }),
-      activity: (limit, signal) => list('/activity', S.ActivityDto, M.toActivity, 'activity', { signal, query: { limit } })
+    activity: {
+      list: (limit, signal) => list('/activity', S.ActivityDto, M.toActivity, 'activity', { signal, query: { limit } })
     }
   }
 }

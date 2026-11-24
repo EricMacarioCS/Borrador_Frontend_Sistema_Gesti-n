@@ -10,13 +10,6 @@ json_string() {
   printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
 }
 
-json_bool() {
-  case "$1" in
-    true|false) printf '%s' "$1" ;;
-    *) echo "40-runtime-config: valor booleano inválido: $1" >&2; exit 1 ;;
-  esac
-}
-
 case "${API_MODE}" in
   http|mock) ;;
   *) echo "40-runtime-config: API_MODE debe ser http o mock" >&2; exit 1 ;;
@@ -36,9 +29,6 @@ cat > "$target" <<EOF
   "environmentName": $(json_string "$ENVIRONMENT_NAME"),
   "supportEmail": $support,
   "idleMinutes": ${IDLE_MINUTES},
-  "features": {
-    "inventory": $(json_bool "$FEATURE_INVENTORY")
-  },
   "mock": { "latencyMs": [80, 300], "failureRate": 0 }
 }
 EOF
