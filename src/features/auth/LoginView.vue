@@ -13,7 +13,8 @@ const services = useServices()
 const route = useRoute()
 const router = useRouter()
 const id = useId()
-const email = ref('')
+/** Correo o nombre de usuario (`usuario_admin.correo` o `username`). */
+const login = ref('')
 const password = ref('')
 const show = ref(false)
 const busy = ref(false)
@@ -25,13 +26,13 @@ const notice = computed(() => store.endedReason === 'idle'
 
 async function submit() {
   error.value = null
-  if (!email.value.trim() || !password.value) {
-    error.value = 'Escribe tu correo y tu contraseña.'
+  if (!login.value.trim() || !password.value) {
+    error.value = 'Escribe tu correo o usuario y tu contraseña.'
     return
   }
   busy.value = true
   try {
-    await store.signIn(email.value.trim(), password.value)
+    await store.signIn(login.value.trim(), password.value)
     password.value = ''
     // Solo se continúa a rutas internas, nunca a una dirección externa.
     const next = typeof route.query.siguiente === 'string' && route.query.siguiente.startsWith('/') && !route.query.siguiente.startsWith('//') ? route.query.siguiente : null
@@ -53,8 +54,8 @@ async function submit() {
       <p v-if="notice" class="notice warning" role="status">{{ notice }}</p>
       <form class="form" novalidate @submit.prevent="submit">
         <div class="field">
-          <label :for="`${id}-email`">Correo</label>
-          <input :id="`${id}-email`" v-model="email" class="input" type="email" autocomplete="username" autofocus :aria-invalid="error ? 'true' : undefined" />
+          <label :for="`${id}-login`">Correo o usuario</label>
+          <input :id="`${id}-login`" v-model="login" class="input" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus :aria-invalid="error ? 'true' : undefined" />
         </div>
         <div class="field">
           <label :for="`${id}-password`">Contraseña</label>

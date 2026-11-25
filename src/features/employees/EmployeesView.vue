@@ -39,7 +39,7 @@ const initials = (e: Employee) => `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}
         <p>Personal de los complejos. Los salarios solo se muestran al editar un registro.</p>
       </div>
       <button v-if="tab === 'staff'" type="button" class="btn btn-primary" :disabled="!roles.data.value?.length" @click="editing = { employee: null }"><Plus :size="16" /> Registrar empleado</button>
-      <button v-else type="button" class="btn btn-primary" @click="editingRole = { role: null }"><Plus :size="16" /> Nuevo puesto</button>
+      <button v-else-if="store.chainAdmin" type="button" class="btn btn-primary" @click="editingRole = { role: null }"><Plus :size="16" /> Nuevo puesto</button>
     </div>
 
     <div class="tabs" role="tablist" aria-label="Secciones de personal">
@@ -87,22 +87,25 @@ const initials = (e: Employee) => `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}
       </StateView>
     </template>
 
-    <StateView v-else :loading="roles.isPending.value" :error="roles.error.value" skeleton="rows" @retry="roles.refetch()">
-      <div class="panel table-wrap">
-        <table class="data">
-          <thead><tr><th>Puesto</th><th>Área</th><th>Mando</th><th>Responsabilidades</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
-          <tbody>
-            <tr v-for="r in roles.data.value" :key="r.id">
-              <td><strong>{{ r.name }}</strong></td>
-              <td>{{ r.area || '—' }}</td>
-              <td>{{ r.isManager ? 'Sí' : 'No' }}</td>
-              <td>{{ r.responsibilities || '—' }}</td>
-              <td class="actions-col"><button type="button" class="action" :aria-label="`Editar ${r.name}`" @click="editingRole = { role: r }"><Pencil :size="15" /> Editar</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </StateView>
+    <template v-else>
+      <p v-if="!store.chainAdmin" class="notice small spaced">Los puestos son de toda la cadena: solo el administrador los crea o modifica.</p>
+      <StateView :loading="roles.isPending.value" :error="roles.error.value" skeleton="rows" @retry="roles.refetch()">
+        <div class="panel table-wrap">
+          <table class="data">
+            <thead><tr><th>Puesto</th><th>Área</th><th>Mando</th><th>Responsabilidades</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+            <tbody>
+              <tr v-for="r in roles.data.value" :key="r.id">
+                <td><strong>{{ r.name }}</strong></td>
+                <td>{{ r.area || '—' }}</td>
+                <td>{{ r.isManager ? 'Sí' : 'No' }}</td>
+                <td>{{ r.responsibilities || '—' }}</td>
+                <td class="actions-col"><button v-if="store.chainAdmin" type="button" class="action" :aria-label="`Editar ${r.name}`" @click="editingRole = { role: r }"><Pencil :size="15" /> Editar</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </StateView>
+    </template>
 
     <EmployeeDialog :open="!!editing" :employee="editing?.employee ?? null" @close="editing = null" />
     <RoleDialog :open="!!editingRole" :role="editingRole?.role ?? null" @close="editingRole = null" />
@@ -111,6 +114,7 @@ const initials = (e: Employee) => `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}
 
 <style scoped>
 .toolbar .search svg { top: auto; bottom: 11px; transform: none; }
+.spaced { margin-bottom: 12px; }
 .person { display: flex; align-items: center; gap: 10px; }
 .avatar { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-size: 12px; font-weight: 700; }
 </style>

@@ -25,18 +25,25 @@ export type Permission =
   | 'prices.manage' | 'promotions.manage'
   | 'complexes.manage' | 'employees.manage' | 'settings.view'
 
+/** Cuenta de acceso (`usuario_admin`), ligada a un empleado. */
 export interface AdminUser {
   id: Id
+  /** Nombre del empleado ligado. */
   name: string
+  username: string
   email: string
+  /** Puesto (`rol`) de la cuenta. */
   roleName: string
 }
 
 export interface Session {
   user: AdminUser | null
   permissions: Permission[]
-  /** Complejos que puede administrar. `null`: toda la cadena. */
-  complexIds: Id[] | null
+  /**
+   * Complejo asignado (`usuario_admin.complejo_id`): solo puede modificar lo de ese complejo.
+   * `null`: administrador, con todos los permisos sobre toda la cadena.
+   */
+  complexId: Id | null
   csrfToken: string | null
 }
 

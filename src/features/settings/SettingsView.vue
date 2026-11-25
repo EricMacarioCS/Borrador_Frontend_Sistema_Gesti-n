@@ -27,9 +27,10 @@ const version = __APP_VERSION__
         <h2>Tu cuenta</h2>
         <dl>
           <div><dt>Nombre</dt><dd>{{ store.session.user?.name }}</dd></div>
+          <div><dt>Usuario</dt><dd>{{ store.session.user?.username }}</dd></div>
           <div><dt>Correo</dt><dd>{{ store.session.user?.email }}</dd></div>
           <div><dt>Puesto</dt><dd>{{ store.session.user?.roleName }}</dd></div>
-          <div><dt>Alcance</dt><dd>{{ store.session.complexIds === null ? 'Toda la cadena' : store.complexes.map(c => c.name).join(', ') }}</dd></div>
+          <div><dt>Alcance</dt><dd>{{ store.chainAdmin ? 'Administrador: toda la cadena' : `Solo ${store.complexes[0]?.name ?? 'su complejo'}` }}</dd></div>
           <div><dt>Módulos</dt><dd>{{ modules.join(', ') }}</dd></div>
           <div><dt>Cierre por inactividad</dt><dd>{{ config.idleMinutes ? `${config.idleMinutes} minutos` : 'Desactivado' }}</dd></div>
         </dl>

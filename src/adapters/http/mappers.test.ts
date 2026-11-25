@@ -37,7 +37,7 @@ describe('conversión de respuestas', () => {
   })
 
   it('un permiso desconocido nunca concede acceso', () => {
-    const session = toSession(parse(SessionDto, { user: null, permissions: ['screenings.manage', 'superusuario'], complexIds: null, csrfToken: 't' }, 'session'))
+    const session = toSession(parse(SessionDto, { user: null, permissions: ['screenings.manage', 'superusuario'], complexId: null, csrfToken: 't' }, 'session'))
     expect(session.permissions).toEqual(['screenings.manage'])
   })
 })

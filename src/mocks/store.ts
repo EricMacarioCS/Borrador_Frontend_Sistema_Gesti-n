@@ -4,9 +4,9 @@
  */
 import type { Permission } from '@/domain/models'
 
-const KEY = 'cp-admin-mock-v2'
-/** Versión anterior del estado (con pedidos e inventario). Se borra al cargar. */
-const OLD_KEY = 'cp-admin-mock-v1'
+const KEY = 'cp-admin-mock-v3'
+/** Versiones anteriores del estado. Se borran al cargar. */
+const OLD_KEYS = ['cp-admin-mock-v1', 'cp-admin-mock-v2']
 const SESSION_KEY = 'cp-admin-mock-session'
 
 export interface ComplexRec {
@@ -52,13 +52,21 @@ export interface EmployeeRec {
   birthDate: string; hiredOn: string; salaryCents: number; status: string; complexId: string; roleId: string
 }
 export interface ActivityRec { id: string; at: string; actor: string; area: string; summary: string }
+/** Cuenta de acceso, como `usuario_admin`. `complexId` nulo: administrador de toda la cadena. */
+export interface UserRec {
+  id: string; employeeId: string; username: string; email: string
+  /** Solo en el simulador. La base de datos guarda `password_hash`. */
+  password: string
+  roleId: string; complexId: string | null; active: boolean; lastAccess: string | null; createdAt: string
+}
 
 export interface MockState {
-  v: 2
+  v: 3
   seq: number
   seededOn: string
   sessions: Record<string, { csrf: string; userId: string | null; startedAt: number }>
   logins: Record<string, { failures: number; lockedUntil: number }>
+  users: UserRec[]
   complexes: ComplexRec[]
   rooms: RoomRec[]
   templates: Record<string, TemplateRec>
@@ -85,7 +93,10 @@ export interface MockState {
   idempotency: Record<string, { fingerprint: string; result: unknown }>
 }
 
-export interface MockUser { id: string; name: string; email: string; password: string; roleName: string; permissions: Permission[]; complexIds: string[] | null }
+/** Usuario de la sesión ya resuelto: nombre del empleado, puesto y permisos. */
+export interface MockUser {
+  id: string; name: string; username: string; email: string; roleName: string; permissions: Permission[]; complexId: string | null
+}
 
 /** Memoria de respaldo si el navegador bloquea el almacenamiento (también se usa en pruebas). */
 let memory: string | null = null
@@ -95,11 +106,11 @@ export function load(seed: () => MockState): MockState {
   let raw: string | null = memory
   try {
     raw = localStorage.getItem(KEY) ?? memory
-    localStorage.removeItem(OLD_KEY)
+    OLD_KEYS.forEach(key => localStorage.removeItem(key))
   } catch { /* Sin acceso: memoria. */ }
   try {
     const parsed = raw ? JSON.parse(raw) as MockState : null
-    if (parsed?.v === 2) return parsed
+    if (parsed?.v === 3) return parsed
   } catch { /* Dato dañado: se regenera. */ }
   const fresh = seed()
   save(fresh)

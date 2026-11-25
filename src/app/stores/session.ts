@@ -2,11 +2,11 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import type { Complex, Id, Permission, ReferenceData, Session } from '@/domain/models'
 import type { Services } from '@/domain/ports'
-import { can as allowed } from '@/domain/rules'
+import { can as allowed, isChainAdmin } from '@/domain/rules'
 import { serverNow } from '@/shared/lib/clock'
 import { dateInZone, DEFAULT_TIME_ZONE, formatTime } from '@/shared/lib/datetime'
 
-const GUEST: Session = { user: null, permissions: [], complexIds: null, csrfToken: null }
+const GUEST: Session = { user: null, permissions: [], complexId: null, csrfToken: null }
 
 /** Sesión del administrador y datos de referencia (complejos, catálogos). Nada de esto se guarda en el navegador. */
 export const useSessionStore = defineStore('session', () => {
@@ -18,12 +18,14 @@ export const useSessionStore = defineStore('session', () => {
 
   const signedIn = computed(() => session.value.user !== null)
   const can = (permission: Permission) => allowed(session.value, permission)
+  /** Administrador de toda la cadena (cuenta sin complejo asignado). */
+  const chainAdmin = computed(() => isChainAdmin(session.value))
 
-  /** Complejos que este usuario puede administrar. */
+  /** Complejos que este usuario puede administrar: todos, o solo el que tiene asignado. */
   const complexes = computed<Complex[]>(() => {
     const all = reference.value?.complexes ?? []
-    const scope = session.value.complexIds
-    return scope === null ? all : all.filter(complex => scope.includes(complex.id))
+    const assigned = session.value.complexId
+    return assigned === null ? all : all.filter(complex => complex.id === assigned)
   })
   const complexById = (id: Id) => reference.value?.complexes.find(complex => complex.id === id)
   const complexName = (id: Id) => complexById(id)?.name ?? 'Complejo desconocido'
@@ -42,9 +44,9 @@ export const useSessionStore = defineStore('session', () => {
     reference.value = await services.value.reference.load()
   }
 
-  async function signIn(email: string, password: string) {
+  async function signIn(login: string, password: string) {
     if (!services.value) throw new Error('Servicios no inicializados')
-    session.value = await services.value.auth.signIn(email, password)
+    session.value = await services.value.auth.signIn(login, password)
     endedReason.value = null
     await loadReference()
   }
@@ -68,7 +70,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   return {
-    services, session, reference, endedReason, signedIn, complexes,
+    services, session, reference, endedReason, signedIn, chainAdmin, complexes,
     can, complexById, complexName, today, nowTime, init, loadReference, signIn, signOut, expire
   }
 })

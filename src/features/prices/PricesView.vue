@@ -95,7 +95,7 @@ const typeDialog = ref<{ type: TicketType | null } | null>(null)
         <button type="button" class="btn btn-secondary" :disabled="!dirty" @click="reset"><RotateCcw :size="16" /> Deshacer</button>
         <button type="button" class="btn btn-primary" :disabled="!dirty || invalidCells || save.isPending.value" @click="save.mutate()"><Check :size="16" /> Guardar tarifa</button>
       </div>
-      <button v-else type="button" class="btn btn-primary" @click="typeDialog = { type: null }"><Plus :size="16" /> Nuevo tipo de boleto</button>
+      <button v-else-if="store.chainAdmin" type="button" class="btn btn-primary" @click="typeDialog = { type: null }"><Plus :size="16" /> Nuevo tipo de boleto</button>
     </div>
 
     <div class="tabs" role="tablist" aria-label="Secciones de tarifas">
@@ -159,22 +159,25 @@ const typeDialog = ref<{ type: TicketType | null } | null>(null)
       </StateView>
     </template>
 
-    <StateView v-else :loading="ticketTypes.isPending.value" :error="ticketTypes.error.value" skeleton="rows" @retry="ticketTypes.refetch()">
-      <div class="panel table-wrap">
-        <table class="data">
-          <thead><tr><th>Tipo de boleto</th><th>Descripción</th><th>Precio</th><th>Promocional</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
-          <tbody>
-            <tr v-for="type in ticketTypes.data.value" :key="type.id">
-              <td><strong>{{ type.name }}</strong></td>
-              <td>{{ type.description || '—' }}</td>
-              <td>{{ type.fixedPriceCents === null ? 'Según la tarifa de cada complejo' : `${formatMoney(type.fixedPriceCents)} fijo` }}</td>
-              <td>{{ type.isPromotional ? 'Sí' : 'No' }}</td>
-              <td class="actions-col"><button type="button" class="action" :aria-label="`Editar ${type.name}`" @click="typeDialog = { type }"><Pencil :size="15" /> Editar</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </StateView>
+    <template v-else>
+      <p v-if="!store.chainAdmin" class="notice small spaced">Los tipos de boleto son de toda la cadena: solo el administrador los crea o modifica.</p>
+      <StateView :loading="ticketTypes.isPending.value" :error="ticketTypes.error.value" skeleton="rows" @retry="ticketTypes.refetch()">
+        <div class="panel table-wrap">
+          <table class="data">
+            <thead><tr><th>Tipo de boleto</th><th>Descripción</th><th>Precio</th><th>Promocional</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+            <tbody>
+              <tr v-for="type in ticketTypes.data.value" :key="type.id">
+                <td><strong>{{ type.name }}</strong></td>
+                <td>{{ type.description || '—' }}</td>
+                <td>{{ type.fixedPriceCents === null ? 'Según la tarifa de cada complejo' : `${formatMoney(type.fixedPriceCents)} fijo` }}</td>
+                <td>{{ type.isPromotional ? 'Sí' : 'No' }}</td>
+                <td class="actions-col"><button v-if="store.chainAdmin" type="button" class="action" :aria-label="`Editar ${type.name}`" @click="typeDialog = { type }"><Pencil :size="15" /> Editar</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </StateView>
+    </template>
 
     <TicketTypeDialog :open="!!typeDialog" :type="typeDialog?.type ?? null" @close="typeDialog = null" />
   </section>

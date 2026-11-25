@@ -18,9 +18,9 @@ export const ListOf = <T extends z.ZodType>(item: T) => z.object({ items: z.arra
 /* Sesión */
 
 export const SessionDto = z.object({
-  user: z.object({ id: z.string(), name: z.string(), email: z.string(), roleName: z.string() }).nullable(),
+  user: z.object({ id: z.string(), name: z.string(), username: z.string(), email: z.string(), roleName: z.string() }).nullable(),
   permissions: z.array(z.string()),
-  complexIds: z.array(z.string()).nullable(),
+  complexId: z.string().nullable(),
   csrfToken: z.string().nullable()
 })
 

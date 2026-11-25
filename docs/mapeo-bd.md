@@ -18,6 +18,7 @@ Cómo se relaciona cada módulo con las tablas del diagrama ER (`Diagrama ER cin
 
 | Módulo | Tablas | Observaciones |
 | --- | --- | --- |
+| Acceso y alcance | `usuario_admin` → `empleado`, `rol`, `complejo` | Se entra con `correo` o `username` y se valida contra `password_hash`. `activo = false` impide entrar. `ultimo_acceso` se actualiza al entrar. `complejo_id` nulo = administrador con toda la cadena; con complejo, la cuenta solo modifica ese complejo. El nombre visible sale del empleado ligado y el puesto de `rol`. |
 | Complejos | `complejo`, `ciudad` | `kind` = `tipo_complejo`; `vista_id`, `slug`, `codigo_postal`, `fecha_apertura`, `imagen_url`. `roomCount` y `seatCount` se calculan. Falta zona horaria por complejo. |
 | Salas | `sala`, `sala_formato_sala`, `formato_sala` | `capacidad_asientos` debe igualar el número de asientos de la plantilla (calcularla o validarla con un disparador). El disparador `trg_check_formato_proyeccion` ya impide asociar formatos que no son de proyección. |
 | Plano de asientos | `asiento_plantilla` | `fila`, `columna`, `tipo_asiento`, `area_category_code`. Los pasillos se representan como columnas sin asiento: no hace falta columna nueva. `tipo_asiento` debería limitarse con `CHECK` a estándar, silla de ruedas, acompañante y preferente. |
@@ -39,7 +40,7 @@ Cómo se relaciona cada módulo con las tablas del diagrama ER (`Diagrama ER cin
 
 | # | Falta | Afecta | Propuesta |
 | --- | --- | --- | --- |
-| 1 | **Usuarios administrativos, permisos y sesiones** | Acceso al sistema | Tablas `usuario_admin` (correo único, hash de contraseña con Argon2id o bcrypt, intentos fallidos, bloqueo), `permiso_usuario` y `usuario_complejo` (alcance). Ligar opcionalmente a `empleado`. |
+| 1 | **Detalles de `usuario_admin`** | Acceso al sistema | La tabla ya existe en la nueva versión. Falta: `UNIQUE` en `correo` y `username`; `complejo_id` **nullable** (nulo = administrador) o, si se prefiere, un rol marcado como administrador; intentos fallidos y bloqueo (`intentos_fallidos`, `bloqueado_hasta`) o tabla aparte; tabla de sesiones del servidor. El hash debe ser Argon2id o bcrypt. |
 | 2 | **Bitácora** | Actividad reciente, auditoría | Tabla `bitacora` (usuario, fecha `timestamptz`, área, entidad, id, resumen, cambios en `jsonb`). |
 | 3 | Fechas de cartelera de la película | Próximamente, preventa, último día, validación de funciones | `pelicula.fecha_estreno`, `inicio_preventa`, `fecha_fin`. |
 | 4 | Estado de la venta | Saber si una función ya vendió | Si el sitio guarda ventas sin pagar (apartados), `venta.estado` para contar solo las pagadas. |
@@ -54,7 +55,9 @@ Cómo se relaciona cada módulo con las tablas del diagrama ER (`Diagrama ER cin
 
 ## 4. Preguntas para el equipo de base de datos
 
-1. ¿Quién crea las tablas de usuarios administrativos y bitácora? Sin ellas no hay acceso seguro al sistema.
-2. ¿`tipo_sala`, `idioma` y `estatus` tendrán catálogo o `CHECK`?
-3. ¿Se usará `area_category_code` en las tarifas? Hoy el sistema no lo edita.
-4. ¿Habrá más de un catálogo de dulcería por complejo (temporadas)?
+1. ¿Cómo se marca al administrador en `usuario_admin`: con `complejo_id` nulo (lo que asume el sistema) o con un rol especial? ¿`complejo_id` acepta nulos?
+2. ¿Los permisos de una cuenta de complejo dependen de su `rol_id` (por ejemplo, un taquillero no debería editar tarifas) o son iguales para todas? Hoy el simulador da los mismos a todas.
+3. ¿Quién crea la tabla de bitácora?
+4. ¿`tipo_sala`, `idioma` y `estatus` tendrán catálogo o `CHECK`?
+5. ¿Se usará `area_category_code` en las tarifas? Hoy el sistema no lo edita.
+6. ¿Habrá más de un catálogo de dulcería por complejo (temporadas)?

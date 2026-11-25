@@ -26,8 +26,8 @@ const complexId = ref(store.complexes[0]?.id ?? '')
 const search = ref('')
 const category = ref('')
 
-// Solo quien administra toda la cadena define productos; cada complejo decide su catálogo.
-const chainAdmin = computed(() => store.session.complexIds === null)
+// Solo el administrador define productos de la cadena; cada complejo decide su catálogo.
+const chainAdmin = computed(() => store.chainAdmin)
 const catalog = useCatalog(complexId)
 const productsQuery = useProducts()
 const categories = useCategories()
@@ -178,7 +178,7 @@ const createCategory = useMutation({
     </template>
 
     <template v-else-if="tab === 'products'">
-      <p v-if="!chainAdmin" class="notice small spaced">Solo el administrador de la cadena puede crear o modificar productos. Tú decides el catálogo de tus complejos.</p>
+      <p v-if="!chainAdmin" class="notice small spaced">Solo el administrador puede crear o modificar productos de la cadena. Tú decides el catálogo de tu complejo.</p>
       <StateView :loading="productsQuery.isPending.value" :error="productsQuery.error.value" :empty="!chainProducts.length" skeleton="rows" @retry="productsQuery.refetch()">
         <div class="panel table-wrap">
           <table class="data">

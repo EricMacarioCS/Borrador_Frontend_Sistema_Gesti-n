@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { can, canManageComplex, centsToPesos, endTime, movieDatesProblem, movieStage, pesosToCents, slugify } from './rules'
+import { can, canManageComplex, isChainAdmin, centsToPesos, endTime, movieDatesProblem, movieStage, pesosToCents, slugify } from './rules'
 import type { Session } from './models'
 
 describe('reglas del dominio', () => {
@@ -39,11 +39,17 @@ describe('reglas del dominio', () => {
   })
 
   it('permisos y alcance', () => {
-    const session: Session = { user: null, permissions: ['screenings.manage'], complexIds: ['a'], csrfToken: null }
+    const user = { id: 'u', name: 'U', username: 'u', email: 'u@x.test', roleName: 'Gerente' }
+    const session: Session = { user, permissions: ['screenings.manage'], complexId: 'a', csrfToken: null }
     expect(can(session, 'screenings.manage')).toBe(true)
     expect(can(session, 'prices.manage')).toBe(false)
     expect(canManageComplex(session, 'a')).toBe(true)
     expect(canManageComplex(session, 'b')).toBe(false)
-    expect(canManageComplex({ ...session, complexIds: null }, 'b')).toBe(true)
+    expect(isChainAdmin(session)).toBe(false)
+    const admin = { ...session, complexId: null }
+    expect(canManageComplex(admin, 'b')).toBe(true)
+    expect(isChainAdmin(admin)).toBe(true)
+    // Sin sesión no hay alcance, aunque el complejo sea nulo.
+    expect(isChainAdmin({ ...admin, user: null })).toBe(false)
   })
 })

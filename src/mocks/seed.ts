@@ -121,11 +121,12 @@ export function seedState(): MockState {
   const at = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 3600_000).toISOString()
 
   return {
-    v: 2,
+    v: 3,
     seq: 1000,
     seededOn: today,
     sessions: {},
     logins: {},
+    users: F.USER_SEEDS.map(user => ({ ...user, lastAccess: null, createdAt: at(24 * 400) })),
     complexes: F.COMPLEX_SEEDS.map(c => ({
       id: c.id, version: 1, name: c.name, slug: `cinepolis-${c.id}`, kind: c.kind, cityId: c.cityId, address: c.address, postalCode: c.postalCode,
       openedOn: c.openedOn, imageUrl: null, vistaId: String(1000 + hash(c.id) % 9000), timeZone: F.TIME_ZONE
@@ -155,7 +156,7 @@ export function seedState(): MockState {
     pages: F.PAGE_SEEDS.map(page => ({ ...page, version: 1 })),
     rules: { version: 1, maxSeatsPerPurchase: 10, holdMinutes: 10, cancelMinutesBefore: 60, scheduleDays: 14 },
     roles: F.ROLE_SEEDS.map(role => ({ ...role, version: 1 })),
-    employees: F.employeeSeeds().map(employee => ({ ...employee, version: 1 })),
+    employees: [F.ADMIN_EMPLOYEE, ...F.employeeSeeds()].map(employee => ({ ...employee, version: 1 })),
     activity: [
       { id: 'act-3', at: at(1), actor: 'Ana Torres', area: 'Dulcería', summary: 'Cambió el precio de Palomitas en Xalapa Centro.' },
       { id: 'act-2', at: at(5), actor: 'Ana Torres', area: 'Funciones', summary: 'Programó 24 funciones de Horizonte infinito.' },

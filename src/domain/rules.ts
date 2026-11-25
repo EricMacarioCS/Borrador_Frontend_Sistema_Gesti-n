@@ -32,8 +32,13 @@ export function can(session: Session, permission: Permission): boolean {
   return session.permissions.includes(permission)
 }
 
+/** Administrador: sin complejo asignado, administra toda la cadena. */
+export function isChainAdmin(session: Session): boolean {
+  return session.user !== null && session.complexId === null
+}
+
 export function canManageComplex(session: Session, complexId: string): boolean {
-  return session.complexIds === null || session.complexIds.includes(complexId)
+  return session.user !== null && (session.complexId === null || session.complexId === complexId)
 }
 
 /** Hora de término de una función, con aviso si cruza la medianoche. */

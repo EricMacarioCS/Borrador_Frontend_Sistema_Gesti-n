@@ -3,8 +3,8 @@
  * Son las mismas garantías que debe dar el API real (ver docs/contrato-api.md).
  */
 import type { Permission } from '@/domain/models'
-import { USERS } from '../fixtures'
-import type { MockState } from '../store'
+import { ADMIN_PERMISSIONS, COMPLEX_PERMISSIONS } from '../fixtures'
+import type { MockState, MockUser } from '../store'
 
 export interface MockRequest {
   method: string
@@ -33,7 +33,7 @@ export interface Context {
   state: MockState
   request: MockRequest
   now: number
-  user: (typeof USERS)[number]
+  user: MockUser
   params: string[]
   /** Marca que hubo cambios para guardar el estado. */
   changed: () => void
@@ -68,7 +68,18 @@ export function sessionOf(state: MockState, sid: string) {
   return state.sessions[sid]
 }
 
-export const userById = (id: string | null) => USERS.find(user => user.id === id) ?? null
+/** Resuelve la cuenta de la sesión. Una cuenta desactivada deja de tener acceso aunque su sesión siga abierta. */
+export function userById(state: MockState, id: string | null): MockUser | null {
+  const account = state.users.find(user => user.id === id)
+  if (!account?.active) return null
+  const employee = state.employees.find(e => e.id === account.employeeId)
+  return {
+    id: account.id, username: account.username, email: account.email, complexId: account.complexId,
+    name: employee ? `${employee.firstName} ${employee.lastName}` : account.username,
+    roleName: state.roles.find(role => role.id === account.roleId)?.name ?? 'Sin puesto',
+    permissions: account.complexId === null ? ADMIN_PERMISSIONS : COMPLEX_PERMISSIONS
+  }
+}
 
 /** Concurrencia optimista: rechaza un cambio hecho sobre una versión vieja. */
 export function checkVersion(record: { version: number }, version: unknown) {
@@ -76,11 +87,16 @@ export function checkVersion(record: { version: number }, version: unknown) {
   if (record.version !== version) fail(409, 'VERSION_CONFLICT', undefined, { currentVersion: record.version })
 }
 
+/** El administrador alcanza todos los complejos; las demás cuentas, solo el que tienen asignado. */
 export function inScope(ctx: Context, complexId: string) {
-  return ctx.user.complexIds === null || ctx.user.complexIds.includes(complexId)
+  return ctx.user.complexId === null || ctx.user.complexId === complexId
 }
 export function requireScope(ctx: Context, complexId: string) {
-  if (!inScope(ctx, complexId)) fail(403, 'FORBIDDEN', 'No administras ese complejo.')
+  if (!inScope(ctx, complexId)) fail(403, 'FORBIDDEN', 'Solo puedes modificar lo de tu complejo.')
+}
+/** Lo que es de toda la cadena solo lo cambia el administrador. */
+export function requireChain(ctx: Context, what: string) {
+  if (ctx.user.complexId !== null) fail(403, 'FORBIDDEN', `Solo el administrador puede modificar ${what}.`)
 }
 
 /** Bitácora de cambios: requiere tabla nueva en la BD (ver docs/mapeo-bd.md). */
@@ -154,6 +170,9 @@ export const money = (amount: number) => ({ amount, currency: 'MXN' as const })
 
 /* Despacho */
 
+/** Solo para rutas públicas: no tiene permisos ni alcance. */
+const GUEST_USER: MockUser = { id: '', name: 'Invitado', username: '', email: '', roleName: '', permissions: [], complexId: '' }
+
 export function dispatch(state: MockState, request: MockRequest, now: number): { response: MockResponse; changed: boolean } {
   let changed = false
   const match = routes.find(r => r.method === request.method && r.pattern.test(request.path))
@@ -161,9 +180,12 @@ export function dispatch(state: MockState, request: MockRequest, now: number): {
   try {
     const session = sessionOf(state, request.sid)
     changed = true
-    const user = userById(session.userId)
+    const user = userById(state, session.userId)
     if (match.permission !== null) {
-      if (!user) fail(401, 'SESSION_REQUIRED')
+      if (!user) {
+        session.userId = null
+        fail(401, 'SESSION_REQUIRED')
+      }
       // Sesión absoluta de 12 horas: después hay que volver a entrar.
       if (now - session.startedAt > 12 * 3600_000) {
         session.userId = null
@@ -173,7 +195,7 @@ export function dispatch(state: MockState, request: MockRequest, now: number): {
     }
     if (!['GET', 'HEAD'].includes(request.method) && match.permission !== null && request.csrf !== session.csrf) fail(403, 'CSRF_INVALID')
     const params = match.pattern.exec(request.path)!.slice(1).map(decodeURIComponent)
-    const response = match.handler({ state, request, now, user: user ?? USERS[0]!, params, changed: () => { changed = true } })
+    const response = match.handler({ state, request, now, user: user ?? GUEST_USER, params, changed: () => { changed = true } })
     return { response, changed }
   } catch (error) {
     if (error instanceof MockProblem) return { response: problem(error.status, error.code, error.detail, error.extra), changed }

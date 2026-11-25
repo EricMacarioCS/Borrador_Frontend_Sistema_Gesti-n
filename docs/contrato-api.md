@@ -18,22 +18,25 @@ Lo que el frontend del sistema de gestión espera del backend. La fuente ejecuta
 | Método y ruta | Uso |
 | --- | --- |
 | `GET /session` | Sesión actual y token CSRF. Crea una sesión anónima si no existe. |
-| `POST /session` | `{ email, password }` → sesión. Credenciales incorrectas: `401 INVALID_CREDENTIALS` (mismo error si el correo no existe). Tras 5 fallos, `423 ACCOUNT_LOCKED` por 15 minutos con `Retry-After`. Emite una sesión nueva (evita fijación). |
+| `POST /session` | `{ login, password }` → sesión. `login` es el correo o el nombre de usuario de `usuario_admin` (sin distinguir mayúsculas). Credenciales incorrectas: `401 INVALID_CREDENTIALS` (mismo error si la cuenta no existe o está desactivada). Al entrar se actualiza `ultimo_acceso`. Tras 5 fallos, `423 ACCOUNT_LOCKED` por 15 minutos con `Retry-After`. Emite una sesión nueva (evita fijación). |
 | `DELETE /session` | Cierra la sesión. |
 
 ```json
 {
-  "user": { "id": "u-1", "name": "Ana Torres", "email": "admin@cinepolis.test", "roleName": "Administrador general" },
+  "user": { "id": "u-1", "name": "Ana Torres", "username": "admin", "email": "admin@cinepolis.test", "roleName": "Administrador del sistema" },
   "permissions": ["dashboard.view", "movies.manage", "..."],
-  "complexIds": null,
+  "complexId": null,
   "csrfToken": "…"
 }
 ```
 
-- `complexIds: null` = toda la cadena; una lista = solo esos complejos. El servidor filtra lecturas y rechaza escrituras fuera del alcance con `403 FORBIDDEN`.
+- `user` sale de `usuario_admin` (`username`, `correo`), del empleado ligado (`name` = nombre y apellido) y del puesto (`roleName` = `rol.nombre`).
+- `complexId` = `usuario_admin.complejo_id`. **`null` = administrador:** todos los permisos sobre toda la cadena. Con un complejo, la cuenta solo lee y modifica lo de ese complejo; el servidor filtra las lecturas y rechaza con `403 FORBIDDEN` cualquier lectura o escritura de otro complejo (salas, plano, tarifas, catálogo, historial de precios, funciones y personal). La versión VIP de una plaza es otro complejo.
+- Una cuenta desactivada (`activo = false`) pierde el acceso también en las sesiones que ya tenía abiertas.
 - Permisos: `dashboard.view`, `movies.manage`, `screenings.manage`, `products.manage`, `content.manage`, `prices.manage`, `promotions.manage`, `complexes.manage`, `employees.manage`, `settings.view`. Un permiso desconocido se ignora en el cliente.
 - Sin sesión: `401 SESSION_REQUIRED`. Sesión vencida (absoluta de 12 horas): `401 SESSION_EXPIRED`. Sin permiso: `403 FORBIDDEN`. Sin CSRF válido: `403 CSRF_INVALID` (el cliente renueva el token con `GET /session` y repite una vez).
-- Crear y editar productos de la cadena exige alcance de toda la cadena (`complexIds: null`).
+- Lo que es de toda la cadena solo lo modifica el administrador (`complexId: null`), aunque la cuenta tenga el permiso del módulo: productos y categorías de dulcería, tipos de boleto y puestos. Películas, contenido web y promociones requieren permisos que solo tiene el administrador.
+- Permisos de una cuenta de complejo (en el simulador): `dashboard.view`, `screenings.manage`, `products.manage`, `prices.manage`, `complexes.manage`, `employees.manage`, `settings.view`. En el backend real los asigna el servidor; el cliente solo los obedece.
 
 ## Endpoints
 

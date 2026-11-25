@@ -11,7 +11,8 @@ import type {
 
 export interface AuthPort {
   getSession(signal?: AbortSignal): Promise<Session>
-  signIn(email: string, password: string): Promise<Session>
+  /** `login`: correo o nombre de usuario. */
+  signIn(login: string, password: string): Promise<Session>
   signOut(): Promise<Session>
 }
 

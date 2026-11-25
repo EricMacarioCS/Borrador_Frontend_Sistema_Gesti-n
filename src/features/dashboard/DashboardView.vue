@@ -23,7 +23,7 @@ const count = (n: number) => n.toLocaleString('es-MX')
 
 const complexId = ref('')
 const scopeComplexes = computed(() => complexId.value ? store.complexes.filter(c => c.id === complexId.value) : store.complexes)
-const scopeLabel = computed(() => complexId.value ? store.complexName(complexId.value) : store.session.complexIds === null ? 'Toda la cadena' : 'Tus complejos')
+const scopeLabel = computed(() => complexId.value ? store.complexName(complexId.value) : store.chainAdmin ? 'Toda la cadena' : store.complexes[0]?.name ?? 'Tu complejo')
 
 const week = useScreenings(computed(() => ({ from: today, to: weekEnd, complexId: complexId.value || undefined })))
 const movies = useMovies()
@@ -70,13 +70,13 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
     <div class="page-head">
       <div>
         <h1>Panel principal</h1>
-        <p>Operación de {{ store.session.complexIds === null ? 'la cadena' : 'tus complejos' }}: funciones de hoy, cartelera y pendientes.</p>
+        <p>Operación de {{ store.chainAdmin ? 'la cadena' : store.complexes[0]?.name ?? 'tu complejo' }}: funciones de hoy, cartelera y pendientes.</p>
       </div>
       <div class="page-actions">
         <div v-if="store.complexes.length > 1" class="field scope">
           <label for="d-complejo" class="visually-hidden">Complejo</label>
           <select id="d-complejo" v-model="complexId" class="select">
-            <option value="">{{ store.session.complexIds === null ? 'Toda la cadena' : 'Todos mis complejos' }}</option>
+            <option value="">Toda la cadena</option>
             <option v-for="c in store.complexes" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </div>

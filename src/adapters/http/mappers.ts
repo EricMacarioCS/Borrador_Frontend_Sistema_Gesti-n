@@ -38,7 +38,7 @@ const PERMISSIONS: readonly M.Permission[] = [
 export function toSession(dto: Out<typeof S.SessionDto>): M.Session {
   // Un permiso desconocido se ignora: nunca concede acceso por accidente.
   const permissions = dto.permissions.filter((p): p is M.Permission => (PERMISSIONS as readonly string[]).includes(p))
-  return { user: dto.user, permissions, complexIds: dto.complexIds, csrfToken: dto.csrfToken }
+  return { user: dto.user, permissions, complexId: dto.complexId, csrfToken: dto.csrfToken }
 }
 
 export const toComplex = (dto: Out<typeof S.ComplexDto>): M.Complex => ({ ...dto, kind: dto.kind === 'vip' ? 'vip' : 'traditional' })

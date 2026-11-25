@@ -1,12 +1,12 @@
 /** Sesión, datos de referencia, complejos, salas, películas y funciones. */
 import type { ScheduleRequest } from '@/domain/models'
 import { movieDatesProblem, slugify } from '@/domain/rules'
-import { CITIES, CLEANING_MINUTES, GENRES, LANGUAGES, LOGIN_LOCK_ATTEMPTS, LOGIN_LOCK_MINUTES, MAX_BATCH, PROJECTIONS, RATINGS, ROOM_TYPES, USERS } from '../fixtures'
+import { CITIES, CLEANING_MINUTES, GENRES, LANGUAGES, LOGIN_LOCK_ATTEMPTS, LOGIN_LOCK_MINUTES, MAX_BATCH, PROJECTIONS, RATINGS, ROOM_TYPES } from '../fixtures'
 import { planScreenings } from '../planner'
 import type { MovieRec, ScreeningRec } from '../store'
 import {
   body, checkVersion, fail, idempotent, integer, invalid, isoDate, list, logActivity, nextId, noContent, nullableText, ok,
-  randomToken, requireScope, route, sessionOf, strings, text, userById, type Context
+  inScope, randomToken, requireScope, route, sessionOf, strings, text, userById, type Context
 } from './core'
 import {
   capacityOf, complexJson, movieJson, nowLocal, projectionLabel, roomJson, roomTypeLabel, screeningJson, templateJson, templateOf,
@@ -17,11 +17,11 @@ import {
 
 function sessionJson(ctx: Context) {
   const session = sessionOf(ctx.state, ctx.request.sid)
-  const user = userById(session.userId)
+  const user = userById(ctx.state, session.userId)
   return {
-    user: user ? { id: user.id, name: user.name, email: user.email, roleName: user.roleName } : null,
+    user: user ? { id: user.id, name: user.name, username: user.username, email: user.email, roleName: user.roleName } : null,
     permissions: user?.permissions ?? [],
-    complexIds: user?.complexIds ?? null,
+    complexId: user?.complexId ?? null,
     csrfToken: session.csrf
   }
 }
@@ -30,22 +30,25 @@ route('GET', '/session', null, ctx => ok(sessionJson(ctx)))
 
 route('POST', '/session', null, ctx => {
   const input = body(ctx)
-  const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : ''
+  // Se entra con el correo o con el nombre de usuario de `usuario_admin`.
+  const login = typeof input.login === 'string' ? input.login.trim().toLowerCase() : ''
   const password = typeof input.password === 'string' ? input.password : ''
-  const attempts = ctx.state.logins[email] ?? { failures: 0, lockedUntil: 0 }
+  const attempts = ctx.state.logins[login] ?? { failures: 0, lockedUntil: 0 }
   if (attempts.lockedUntil > ctx.now) fail(423, 'ACCOUNT_LOCKED', undefined, { retryAfter: Math.ceil((attempts.lockedUntil - ctx.now) / 1000) })
-  const user = USERS.find(item => item.email === email)
-  if (!user || user.password !== password) {
+  const user = ctx.state.users.find(item => item.email === login || item.username === login)
+  // Una cuenta desactivada responde igual que una contraseña incorrecta: no revela qué cuentas existen.
+  if (!user || !user.active || user.password !== password) {
     attempts.failures++
     if (attempts.failures >= LOGIN_LOCK_ATTEMPTS) {
       attempts.failures = 0
       attempts.lockedUntil = ctx.now + LOGIN_LOCK_MINUTES * 60_000
     }
-    ctx.state.logins[email] = attempts
+    ctx.state.logins[login] = attempts
     // El mismo mensaje para correo y contraseña: no revela qué cuentas existen.
     fail(401, 'INVALID_CREDENTIALS')
   }
-  delete ctx.state.logins[email]
+  delete ctx.state.logins[login]
+  user!.lastAccess = new Date(ctx.now).toISOString()
   // Sesión nueva al entrar: evita fijación de sesión.
   ctx.state.sessions[ctx.request.sid] = { csrf: randomToken(), userId: user!.id, startedAt: ctx.now }
   return ok(sessionJson(ctx))
@@ -74,6 +77,7 @@ route('GET', '/reference-data', 'any', ctx => ok({
 
 route('PUT', '/complexes/:id', 'complexes.manage', ctx => {
   const complex = ctx.state.complexes.find(c => c.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
+  requireScope(ctx, complex.id)
   const input = body(ctx)
   checkVersion(complex, input.version)
   const slug = slugify(text(input, 'slug', 'la URL amigable', { max: 80 }))
@@ -93,12 +97,14 @@ route('PUT', '/complexes/:id', 'complexes.manage', ctx => {
 })
 
 route('GET', '/complexes/:id/rooms', 'any', ctx => {
+  requireScope(ctx, ctx.params[0]!)
   const rooms = ctx.state.rooms.filter(room => room.complexId === ctx.params[0]).sort((a, b) => a.number - b.number)
   return ok({ items: rooms.map(room => roomJson(ctx.state, room)) })
 })
 
 route('PUT', '/rooms/:id', 'complexes.manage', ctx => {
   const room = ctx.state.rooms.find(r => r.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
+  requireScope(ctx, room.complexId)
   const input = body(ctx)
   checkVersion(room, input.version)
   const type = text(input, 'type', 'el tipo de sala')
@@ -119,11 +125,13 @@ route('PUT', '/rooms/:id', 'complexes.manage', ctx => {
 
 route('GET', '/rooms/:id/seat-template', 'any', ctx => {
   const room = ctx.state.rooms.find(r => r.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
+  requireScope(ctx, room.complexId)
   return ok(templateJson(ctx.state, room))
 })
 
 route('PUT', '/rooms/:id/seat-template', 'complexes.manage', ctx => {
   const room = ctx.state.rooms.find(r => r.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
+  requireScope(ctx, room.complexId)
   const input = body(ctx)
   checkVersion(templateOf(ctx.state, room), input.version)
   const labels = new Set<string>()
@@ -231,7 +239,7 @@ route('GET', '/screenings', 'any', ctx => {
   const complexId = ctx.request.query.get('complexId')
   const movieId = ctx.request.query.get('movieId')
   const roomIds = new Set(ctx.state.rooms.filter(room =>
-    (!complexId || room.complexId === complexId) && (ctx.user.complexIds === null || ctx.user.complexIds.includes(room.complexId))).map(room => room.id))
+    (!complexId || room.complexId === complexId) && inScope(ctx, room.complexId)).map(room => room.id))
   const items = ctx.state.screenings
     .filter(s => s.date >= from && s.date <= to && roomIds.has(s.roomId) && (!movieId || s.movieId === movieId))
     .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))

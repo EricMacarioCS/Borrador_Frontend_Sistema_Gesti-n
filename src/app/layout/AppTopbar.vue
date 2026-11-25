@@ -12,9 +12,7 @@ const store = useSessionStore()
 const queryClient = useQueryClient()
 
 const initials = computed(() => (store.session.user?.name ?? '').split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase())
-const scope = computed(() => store.session.complexIds === null
-  ? 'Toda la cadena'
-  : store.complexes.length === 1 ? store.complexes[0]!.name : `${store.complexes.length} complejos`)
+const scope = computed(() => store.chainAdmin ? 'Toda la cadena' : store.complexes[0]?.name ?? 'Sin complejo')
 
 async function signOut() {
   await store.signOut()

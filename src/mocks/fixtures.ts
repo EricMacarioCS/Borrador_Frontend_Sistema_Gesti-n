@@ -18,23 +18,37 @@ export const today = () => dateInZone(new Date(), TIME_ZONE)
 
 /* Usuarios de demostración. Solo existen en el simulador; el backend real usa su propio almacén de identidades. */
 
-const ALL: Permission[] = [
+/** El administrador (cuenta sin complejo asignado) tiene todos los permisos sobre toda la cadena. */
+export const ADMIN_PERMISSIONS: Permission[] = [
   'dashboard.view', 'movies.manage', 'screenings.manage', 'products.manage', 'content.manage', 'prices.manage',
   'promotions.manage', 'complexes.manage', 'employees.manage', 'settings.view'
 ]
 
-export const USERS = [
-  {
-    id: 'u-1', name: 'Ana Torres', email: 'admin@cinepolis.test', password: 'Demo-2026',
-    roleName: 'Administrador general', permissions: ALL, complexIds: null as string[] | null
-  },
-  {
-    id: 'u-2', name: 'Luis Ramírez', email: 'gerente.xalapa@cinepolis.test', password: 'Demo-2026',
-    roleName: 'Gerente de complejo',
-    permissions: ['dashboard.view', 'screenings.manage', 'products.manage', 'settings.view'] as Permission[],
-    complexIds: ['xal-centro', 'xal-centro-vip'] as string[] | null
-  }
+/**
+ * Una cuenta con complejo asignado solo modifica lo de ese complejo: funciones, catálogo de dulcería,
+ * tarifas, salas y personal. Lo que es de toda la cadena (películas, contenido, promociones, productos,
+ * tipos de boleto y puestos) queda para el administrador.
+ */
+export const COMPLEX_PERMISSIONS: Permission[] = [
+  'dashboard.view', 'screenings.manage', 'products.manage', 'prices.manage', 'complexes.manage', 'employees.manage', 'settings.view'
 ]
+
+/**
+ * Cuentas de acceso (`usuario_admin`). `complexId` nulo: administrador.
+ * La contraseña en claro solo existe en el simulador; la base de datos guarda `password_hash` (Argon2id o bcrypt).
+ */
+export const USER_SEEDS = [
+  { id: 'u-1', employeeId: 'emp-admin', username: 'admin', email: 'admin@cinepolis.test', password: 'Demo-2026', roleId: 'rol-admin', complexId: null as string | null, active: true },
+  { id: 'u-2', employeeId: 'emp-1', username: 'gerente.xalapa', email: 'gerente.xalapa@cinepolis.test', password: 'Demo-2026', roleId: 'rol-gerente', complexId: 'xal-centro' as string | null, active: true },
+  // Cuenta desactivada: no puede entrar aunque la contraseña sea correcta.
+  { id: 'u-3', employeeId: 'emp-14', username: 'supervisor.boulevard', email: 'supervisor.boulevard@cinepolis.test', password: 'Demo-2026', roleId: 'rol-supervisor', complexId: 'ver-boulevard' as string | null, active: false }
+]
+
+/** Empleada del corporativo ligada a la cuenta del administrador. */
+export const ADMIN_EMPLOYEE = {
+  id: 'emp-admin', firstName: 'Ana', lastName: 'Torres', secondLastName: 'Medina', email: 'ana.torres@cinepolis.test', phone: '2281000001',
+  birthDate: '1984-03-12', hiredOn: '2015-01-05', salaryCents: 5_500_000, status: 'active', complexId: 'xal-centro', roleId: 'rol-admin'
+}
 
 /* Catálogos */
 
@@ -256,6 +270,7 @@ export const PAGE_SEEDS = [
 /* Empleados */
 
 export const ROLE_SEEDS = [
+  { id: 'rol-admin', name: 'Administrador del sistema', isManager: true, responsibilities: 'Administra la cartelera, los precios y el personal de toda la cadena.', area: 'Corporativo' },
   { id: 'rol-gerente', name: 'Gerente', isManager: true, responsibilities: 'Responsable de la operación y resultados del complejo.', area: 'Dirección' },
   { id: 'rol-sub-admin', name: 'Subgerente administrativo', isManager: true, responsibilities: 'Caja, cortes, inventario y personal.', area: 'Administración' },
   { id: 'rol-supervisor', name: 'Supervisor', isManager: true, responsibilities: 'Coordina turnos de taquilla y dulcería.', area: 'Operación' },

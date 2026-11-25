@@ -9,7 +9,7 @@ const MESSAGES: Partial<Record<ErrorCode, string>> = {
   SERVICE_UNAVAILABLE: 'El servicio no está disponible por el momento.',
   RATE_LIMITED: 'Hiciste demasiados intentos. Espera un momento.',
   VALIDATION_FAILED: 'Revisa los datos marcados.',
-  INVALID_CREDENTIALS: 'El correo o la contraseña no son correctos.',
+  INVALID_CREDENTIALS: 'El usuario o la contraseña no son correctos.',
   ACCOUNT_LOCKED: 'La cuenta se bloqueó por varios intentos fallidos. Espera 15 minutos o avisa a soporte.',
   SESSION_REQUIRED: 'Inicia sesión para continuar.',
   SESSION_EXPIRED: 'Tu sesión venció. Vuelve a iniciarla.',

@@ -3,7 +3,7 @@ import { PROJECTIONS, ROOM_TYPES } from '../fixtures'
 import type { CatalogRec, ProductRec, PromotionRec, RuleRec } from '../store'
 import {
   body, cents, checkVersion, fail, integer, invalid, isoDate, list, logActivity, money, nextId, noContent, nullableText, ok,
-  requireScope, route, strings, text, type Context
+  requireChain, requireScope, route, strings, text, type Context
 } from './core'
 import { catalogJson, productJson } from './views'
 
@@ -17,6 +17,7 @@ const ticketTypeJson = (t: { id: string; version: number; name: string; descript
 route('GET', '/ticket-types', 'any', ctx => ok({ items: ctx.state.ticketTypes.map(ticketTypeJson) }))
 
 function saveTicketType(ctx: Context, id: string | null) {
+  requireChain(ctx, 'los tipos de boleto')
   const input = body(ctx)
   const name = text(input, 'name', 'el nombre', { max: 60 })
   if (ctx.state.ticketTypes.some(t => t.id !== id && t.name.toLowerCase() === name.toLowerCase())) fail(409, 'DUPLICATE', 'Ya existe un tipo de boleto con ese nombre.')
@@ -43,12 +44,14 @@ const sheetJson = (complexId: string, sheet: { version: number; prices: { roomTy
 })
 
 route('GET', '/complexes/:id/ticket-prices', 'any', ctx => {
+  requireScope(ctx, ctx.params[0]!)
   const sheet = ctx.state.priceSheets[ctx.params[0]!] ?? fail(404, 'NOT_FOUND')
   return ok(sheetJson(ctx.params[0]!, sheet))
 })
 
 route('PUT', '/complexes/:id/ticket-prices', 'prices.manage', ctx => {
   const complexId = ctx.params[0]!
+  requireScope(ctx, complexId)
   const sheet = ctx.state.priceSheets[complexId] ?? fail(404, 'NOT_FOUND')
   const input = body(ctx)
   checkVersion(sheet, input.version)
@@ -75,13 +78,11 @@ route('PUT', '/complexes/:id/ticket-prices', 'prices.manage', ctx => {
 
 route('GET', '/product-categories', 'any', ctx => ok({ items: ctx.state.categories }))
 
-/** Los productos son de toda la cadena: solo quien la administra completa puede definirlos. */
-function requireChain(ctx: Context) {
-  if (ctx.user.complexIds !== null) fail(403, 'FORBIDDEN', 'Solo el administrador de la cadena define productos.')
-}
+/** Los productos son de toda la cadena: solo el administrador los define. */
+const requireChainProducts = (ctx: Context) => requireChain(ctx, 'los productos de la cadena')
 
 route('POST', '/product-categories', 'products.manage', ctx => {
-  requireChain(ctx)
+  requireChainProducts(ctx)
   const name = text(body(ctx), 'name', 'el nombre', { max: 60 })
   if (ctx.state.categories.some(c => c.name.toLowerCase() === name.toLowerCase())) fail(409, 'DUPLICATE', 'Esa categoría ya existe.')
   const category = { id: nextId(ctx.state, 'cat'), name }
@@ -139,7 +140,7 @@ function syncCatalogs(ctx: Context, product: ProductRec) {
 }
 
 route('POST', '/products', 'products.manage', ctx => {
-  requireChain(ctx)
+  requireChainProducts(ctx)
   const product: ProductRec = { id: nextId(ctx.state, 'p'), version: 1, ...readProduct(ctx, null) }
   ctx.state.products.push(product)
   logActivity(ctx, 'Dulcería', `Creó el producto ${product.name}.`)
@@ -147,7 +148,7 @@ route('POST', '/products', 'products.manage', ctx => {
 })
 
 route('PUT', '/products/:id', 'products.manage', ctx => {
-  requireChain(ctx)
+  requireChainProducts(ctx)
   const product = ctx.state.products.find(p => p.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
   checkVersion(product, body(ctx).version)
   Object.assign(product, readProduct(ctx, product), { version: product.version + 1 })
@@ -159,6 +160,7 @@ route('PUT', '/products/:id', 'products.manage', ctx => {
 /* Dulcería: catálogo, precios y disponibilidad de cada complejo */
 
 route('GET', '/complexes/:id/catalog', 'any', ctx => {
+  requireScope(ctx, ctx.params[0]!)
   const entries = ctx.state.catalogs[ctx.params[0]!] ?? fail(404, 'NOT_FOUND')
   return ok({ items: entries.map(entry => catalogJson(ctx.state, ctx.params[0]!, entry)) })
 })
@@ -210,12 +212,13 @@ route('DELETE', '/complexes/:id/catalog/:productId', 'products.manage', ctx => {
   return noContent()
 })
 
-route('GET', '/complexes/:id/price-history', 'any', ctx => ok({
-  items: (ctx.state.priceHistory[ctx.params[0]!] ?? []).map(change => ({
+route('GET', '/complexes/:id/price-history', 'any', ctx => {
+  requireScope(ctx, ctx.params[0]!)
+  return ok({ items: (ctx.state.priceHistory[ctx.params[0]!] ?? []).map(change => ({
     id: change.id, productName: ctx.state.products.find(p => p.id === change.productId)?.name ?? 'Producto retirado',
     previous: money(change.previousCents), current: money(change.newCents), changedAt: change.changedAt
-  }))
-}))
+  })) })
+})
 
 /** Sin inventario: el personal marca a mano si el producto está disponible en el complejo. */
 route('PUT', '/complexes/:id/catalog/:productId/availability', 'products.manage', ctx => {

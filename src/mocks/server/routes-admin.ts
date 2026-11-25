@@ -2,7 +2,7 @@
 import { addDays } from '@/shared/lib/datetime'
 import type { BannerRec, EmployeeRec } from '../store'
 import {
-  body, cents, checkVersion, fail, integer, invalid, isoDate, list, logActivity, nextId, noContent, nullableText, ok, route,
+  body, cents, checkVersion, fail, integer, invalid, inScope, isoDate, list, logActivity, nextId, noContent, nullableText, ok, requireChain, requireScope, route,
   strings, text, type Context
 } from './core'
 import { employeeJson } from './views'
@@ -109,7 +109,7 @@ route('PUT', '/settings/purchase-rules', 'content.manage', ctx => {
 
 /* Empleados y roles */
 
-route('GET', '/employees', 'employees.manage', ctx => ok({ items: ctx.state.employees.map(employeeJson) }))
+route('GET', '/employees', 'employees.manage', ctx => ok({ items: ctx.state.employees.filter(e => inScope(ctx, e.complexId)).map(employeeJson) }))
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -126,6 +126,8 @@ function readEmployee(ctx: Context, current: EmployeeRec | null): Omit<EmployeeR
   if (birthDate > addDays(hiredOn, -16 * 365)) invalid('La persona debe tener al menos 16 años al contratarse.', 'birthDate')
   const complexId = text(input, 'complexId', 'el complejo')
   if (!ctx.state.complexes.some(c => c.id === complexId)) invalid('El complejo no existe.', 'complexId')
+  // No se puede registrar ni trasladar personal a un complejo ajeno.
+  requireScope(ctx, complexId)
   const roleId = text(input, 'roleId', 'el puesto')
   if (!ctx.state.roles.some(r => r.id === roleId)) invalid('El puesto no existe.', 'roleId')
   const status = String(input.status)
@@ -146,6 +148,7 @@ route('POST', '/employees', 'employees.manage', ctx => {
 
 route('PUT', '/employees/:id', 'employees.manage', ctx => {
   const employee = ctx.state.employees.find(e => e.id === ctx.params[0]) ?? fail(404, 'NOT_FOUND')
+  requireScope(ctx, employee.complexId)
   checkVersion(employee, body(ctx).version)
   Object.assign(employee, readEmployee(ctx, employee), { version: employee.version + 1 })
   logActivity(ctx, 'Empleados', `Actualizó a ${employee.firstName} ${employee.lastName}.`)
@@ -155,6 +158,7 @@ route('PUT', '/employees/:id', 'employees.manage', ctx => {
 route('GET', '/roles', 'employees.manage', ctx => ok({ items: ctx.state.roles }))
 
 function saveRole(ctx: Context, id: string | null) {
+  requireChain(ctx, 'los puestos')
   const input = body(ctx)
   const name = text(input, 'name', 'el nombre del puesto', { max: 80 })
   if (ctx.state.roles.some(r => r.id !== id && r.name.toLowerCase() === name.toLowerCase())) fail(409, 'DUPLICATE', 'Ese puesto ya existe.')

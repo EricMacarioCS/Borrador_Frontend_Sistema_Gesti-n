@@ -65,9 +65,9 @@ export function createHttpAdapters(options: HttpAdapterOptions): Omit<Services, 
       async getSession(signal) {
         return keepSession(M.parse(S.SessionDto, await raw.get('/session', { signal }), 'session'))
       },
-      async signIn(email, password) {
+      async signIn(login, password) {
         // Inicia sin token: el servidor emite uno nuevo con la sesión.
-        return keepSession(M.parse(S.SessionDto, await raw.post('/session', { body: { email, password } }), 'session'))
+        return keepSession(M.parse(S.SessionDto, await raw.post('/session', { body: { login, password } }), 'session'))
       },
       async signOut() {
         return keepSession(M.parse(S.SessionDto, await raw.delete('/session'), 'session'))

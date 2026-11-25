@@ -1,6 +1,6 @@
 # Borrador_Frontend_Sistema_Gestión
 
-Borrador del **sistema de gestión** de Cinépolis, basado en el prototipo de administración y en el diagrama de la base de datos. Lo usan el administrador de la cadena y los gerentes de cada complejo para manejar cartelera, funciones, dulcería, tarifas, promociones, contenido del sitio y personal. No maneja ventas, ingresos, pedidos ni inventario: las ventas las registran el sitio web y la taquilla.
+Borrador del **sistema de gestión** de Cinépolis, basado en el prototipo de administración y en el diagrama de la base de datos. Lo usan el administrador (toda la cadena) y el personal con cuenta asignada a un complejo para manejar cartelera, funciones, dulcería, tarifas, promociones, contenido del sitio y personal. No maneja ventas, ingresos, pedidos ni inventario: las ventas las registran el sitio web y la taquilla.
 
 Es solo el **frontend**. Mientras no exista el backend, trae un **backend simulado** que corre en el navegador y responde el contrato JSON acordado; al conectar el API real se cambia la configuración, no el código.
 
@@ -30,12 +30,15 @@ npm run check      # lint + tipos + pruebas + compilación (lo mismo que corre C
 
 ### Cuentas de demostración (solo en modo simulado)
 
-| Correo | Contraseña | Perfil |
-| --- | --- | --- |
-| `admin@cinepolis.test` | `Demo-2026` | Administrador general: toda la cadena y todos los módulos. |
-| `gerente.xalapa@cinepolis.test` | `Demo-2026` | Gerente de Xalapa Centro y Xalapa Centro VIP: funciones y catálogo de dulcería (precio, opciones y disponibilidad) de sus complejos. |
+Se entra con el correo o con el nombre de usuario (`usuario_admin.correo` o `username`).
 
-Los datos simulados se guardan en el navegador (`localStorage`, clave `cp-admin-mock-v1`). Para empezar de cero, borra esa clave.
+| Usuario | Correo | Contraseña | Perfil |
+| --- | --- | --- | --- |
+| `admin` | `admin@cinepolis.test` | `Demo-2026` | Administrador: sin complejo asignado, todos los permisos sobre toda la cadena. |
+| `gerente.xalapa` | `gerente.xalapa@cinepolis.test` | `Demo-2026` | Asignado a Xalapa Centro: funciones, catálogo de dulcería, tarifas, salas y personal de ese complejo. No toca lo que es de toda la cadena. |
+| `supervisor.boulevard` | `supervisor.boulevard@cinepolis.test` | `Demo-2026` | Cuenta desactivada (`activo = false`): no puede entrar. |
+
+Los datos simulados se guardan en el navegador (`localStorage`, clave `cp-admin-mock-v3`). Para empezar de cero, borra esa clave.
 
 ## Módulos
 
@@ -50,7 +53,7 @@ Los datos simulados se guardan en el navegador (`localStorage`, clave `cp-admin-
 | Promociones y Club | Promociones con vigencia, complejos, nivel del Club y reglas automáticas. Niveles del Club. | `promocion`, `promocion_complejo`, `nivel_club` |
 | Complejos y salas | Datos del complejo, tipo de sala, proyecciones y **editor del plano de asientos**. | `complejo`, `ciudad`, `sala`, `asiento_plantilla` |
 | Empleados | Personal por complejo y puestos. Los salarios solo se ven al editar. | `empleado`, `rol` |
-| Configuración | Cuenta, alcance, ambiente y datos de la organización. | — |
+| Configuración | Cuenta (usuario, correo, puesto y alcance), ambiente y datos de la organización. | `usuario_admin`, `empleado`, `rol` |
 
 ## Arquitectura
 
@@ -114,14 +117,14 @@ docker run -p 8080:8080 -e ENVIRONMENT_NAME=staging cinepolis-gestion
 
 Hecho y probado en navegador (escritorio y 375 px):
 
-- Acceso con bloqueo, permisos por módulo y alcance por complejo (dos perfiles de prueba).
+- Acceso con correo o usuario, bloqueo por intentos, cuentas desactivadas, permisos por módulo y alcance de un solo complejo por cuenta.
 - Todos los módulos de la tabla anterior, con validaciones, avisos de cambios sin guardar y confirmaciones.
 - Programación por lote: asignación de salas, limpieza, traslapes, revalidación al crear y "Deshacer".
 - Disponibilidad manual de productos por complejo desde la lista del catálogo.
 
 Pendiente o fuera de alcance:
 
-- Columnas y tablas que faltan en la base de datos (ver `docs/mapeo-bd.md`): fechas de cartelera, reglas de promoción, configuración, usuarios administrativos y bitácora.
+- Columnas y tablas que faltan en la base de datos (ver `docs/mapeo-bd.md`): fechas de cartelera, reglas de promoción, configuración y bitácora. `usuario_admin` ya existe en la nueva versión de la base de datos.
 - Por decisión del equipo se quitaron ventas, ingresos, reportes, pedidos e inventario. El sitio web también debe dejar de descontar existencias.
 - Imágenes: solo se capturan las direcciones; no hay carga de archivos.
 - Taquilla, control de acceso, cortes de caja, cuentas del Club y reclamaciones de garantía no forman parte de este sistema.

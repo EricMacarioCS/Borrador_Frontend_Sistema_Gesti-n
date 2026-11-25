@@ -89,25 +89,67 @@ describe('sesión y seguridad', () => {
   })
 })
 
-describe('permisos y alcance por complejo', () => {
-  it('un gerente no puede tocar tarifas ni definir productos de la cadena', async () => {
-    const manager = await signedIn('gerente-a', MANAGER)
-    const prices = await rejection(manager.prices.saveSheet('xal-centro', 1, []))
-    expect(prices.code).toBe('FORBIDDEN')
-    const categories = await rejection(manager.products.createCategory('Snacks'))
-    expect(categories.code).toBe('FORBIDDEN')
+describe('cuentas de acceso (usuario_admin)', () => {
+  it('se entra con el correo o con el nombre de usuario', async () => {
+    const byUsername = await client('por-usuario').auth.signIn('gerente.xalapa', MANAGER.password)
+    expect(byUsername.user).toMatchObject({ username: 'gerente.xalapa', email: MANAGER.email, roleName: 'Gerente' })
+    expect(byUsername.complexId).toBe('xal-centro')
+    const byEmail = await client('por-correo').auth.signIn('ADMIN@cinepolis.test', ADMIN.password)
+    expect(byEmail.user?.username).toBe('admin')
   })
 
-  it('un gerente solo ve y modifica lo de sus complejos', async () => {
+  it('una cuenta desactivada no entra y responde igual que una contraseña incorrecta', async () => {
+    const error = await rejection(client('inactiva').auth.signIn('supervisor.boulevard', 'Demo-2026'))
+    expect(error.code).toBe('INVALID_CREDENTIALS')
+  })
+
+  it('el administrador no tiene complejo asignado y tiene todos los permisos', async () => {
+    const session = await client('admin-sesion').auth.signIn(ADMIN.email, ADMIN.password)
+    expect(session.complexId).toBeNull()
+    expect(session.permissions).toEqual(expect.arrayContaining(['movies.manage', 'content.manage', 'promotions.manage', 'employees.manage']))
+  })
+})
+
+describe('alcance por complejo', () => {
+  it('el administrador modifica cualquier complejo', async () => {
+    const ports = await signedIn('admin-alcance')
+    const entry = (await ports.products.catalog('ver-boulevard'))[0]!
+    expect((await ports.products.setAvailability('ver-boulevard', entry.product.id, entry.version, !entry.available)).available).toBe(!entry.available)
+  })
+
+  it('una cuenta de complejo no toca lo que es de toda la cadena', async () => {
+    const manager = await signedIn('gerente-a', MANAGER)
+    expect((await rejection(manager.products.createCategory('Snacks'))).code).toBe('FORBIDDEN')
+    const type = (await manager.prices.listTicketTypes())[0]!
+    expect((await rejection(manager.prices.saveTicketType({ ...type, name: 'Otro' }))).code).toBe('FORBIDDEN')
+    const role = (await manager.employees.listRoles())[0]!
+    expect((await rejection(manager.employees.saveRole({ ...role, name: 'Otro' }))).code).toBe('FORBIDDEN')
+    const movie = (await manager.movies.list())[0]!
+    expect((await rejection(manager.movies.remove(movie.id, movie.version))).code).toBe('FORBIDDEN')
+  })
+
+  it('una cuenta de complejo solo ve y modifica su complejo', async () => {
     const manager = await signedIn('gerente-b', MANAGER)
     const screenings = await manager.screenings.list({ from: today(), to: addDays(today(), 2) })
     expect(screenings.length).toBeGreaterThan(0)
-    expect(new Set(screenings.map(s => s.complexId))).toEqual(new Set(['xal-centro', 'xal-centro-vip']))
-    const entry = (await manager.products.catalog('ver-boulevard'))[0]!
-    const error = await rejection(manager.products.saveCatalogEntry('ver-boulevard', entry.product.id, {
-      version: entry.version, priceCents: entry.priceCents + 100, available: true, optionSettings: entry.optionSettings
-    }))
-    expect(error.code).toBe('FORBIDDEN')
+    expect(new Set(screenings.map(s => s.complexId))).toEqual(new Set(['xal-centro']))
+    // Ni siquiera el VIP de la misma plaza: en la BD es otro complejo.
+    expect((await rejection(manager.products.catalog('xal-centro-vip'))).code).toBe('FORBIDDEN')
+    expect((await rejection(manager.complexes.listRooms('ver-boulevard'))).code).toBe('FORBIDDEN')
+    expect((await rejection(manager.prices.getSheet('ver-boulevard'))).code).toBe('FORBIDDEN')
+    const sheet = await manager.prices.getSheet('xal-centro')
+    expect((await manager.prices.saveSheet('xal-centro', sheet.version, sheet.prices)).version).toBe(sheet.version + 1)
+    expect((await rejection(manager.prices.saveSheet('ver-boulevard', 1, sheet.prices))).code).toBe('FORBIDDEN')
+  })
+
+  it('una cuenta de complejo solo administra al personal de su complejo', async () => {
+    const manager = await signedIn('gerente-d', MANAGER)
+    const staff = await manager.employees.list()
+    expect(staff.length).toBeGreaterThan(0)
+    expect(staff.every(e => e.complexId === 'xal-centro')).toBe(true)
+    const { id: _id, version, ...input } = staff.find(e => e.id !== 'emp-1')!
+    expect((await rejection(manager.employees.update(_id, { ...input, version, complexId: 'ver-boulevard' }))).code).toBe('FORBIDDEN')
+    expect((await rejection(manager.employees.create({ ...input, email: null, complexId: 'ver-boulevard' }))).code).toBe('FORBIDDEN')
   })
 })
 
@@ -191,7 +233,8 @@ describe('dulcería', () => {
     const manager = await signedIn('gerente-c', MANAGER)
     const own = (await manager.products.catalog('xal-centro'))[0]!
     expect((await manager.products.setAvailability('xal-centro', own.product.id, own.version, !own.available)).available).toBe(!own.available)
-    const other = (await manager.products.catalog('ver-boulevard'))[0]!
+    const admin = await signedIn('admin-c')
+    const other = (await admin.products.catalog('ver-boulevard'))[0]!
     expect((await rejection(manager.products.setAvailability('ver-boulevard', other.product.id, other.version, false))).code).toBe('FORBIDDEN')
   })
 
