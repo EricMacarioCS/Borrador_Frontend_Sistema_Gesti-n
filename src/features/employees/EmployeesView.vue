@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Pencil, Plus, Search } from '@lucide/vue'
+import { Pencil, Plus, Search, Users } from '@lucide/vue'
 import EmployeeDialog from './EmployeeDialog.vue'
 import RoleDialog from './RoleDialog.vue'
 import { useEmployees, useRoles } from '@/app/queries'
@@ -9,6 +9,7 @@ import { EMPLOYEE_STATUS_LABELS } from '@/domain/labels'
 import type { Employee, EmployeeStatus, Role } from '@/domain/models'
 import StateView from '@/shared/ui/StateView.vue'
 import { normalizeText } from '@/shared/lib/text'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 const store = useSessionStore()
 const employees = useEmployees()
@@ -68,18 +69,19 @@ const initials = (e: Employee) => `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}
         </div>
         <span class="count">{{ shown.length }} personas</span>
       </div>
-      <StateView :loading="employees.isPending.value" :error="employees.error.value" :empty="!shown.length" skeleton="rows" empty-title="Sin resultados" @retry="employees.refetch()">
+      <StateView :loading="employees.isPending.value" :error="employees.error.value" :empty="!shown.length" skeleton="rows" empty-title="Sin resultados" empty-text="Cambia la búsqueda o los filtros." :empty-icon="Users"
+        :action-label="!employees.data.value?.length && roles.data.value?.length ? 'Registrar al primer empleado' : undefined" @action="editing = { employee: null }" @retry="employees.refetch()">
         <div class="panel table-wrap">
-          <table class="data">
+          <table v-table-roles class="data cards">
             <thead><tr><th>Empleado</th><th>Puesto</th><th>Complejo</th><th>Contacto</th><th>Estado</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
             <tbody>
-              <tr v-for="e in shown" :key="e.id">
+              <tr v-for="e in shown" :key="e.id" :class="{ 'row-off': e.status === 'inactive' }">
                 <td><span class="person"><span class="avatar" aria-hidden="true">{{ initials(e) }}</span><strong>{{ fullName(e) }}</strong></span></td>
-                <td>{{ roleName(e.roleId) }}</td>
-                <td>{{ store.complexName(e.complexId) }}</td>
-                <td><span class="stack"><span>{{ e.email ?? '—' }}</span><small>{{ e.phone ?? '' }}</small></span></td>
-                <td><span class="pill" :class="tone(e.status)">{{ EMPLOYEE_STATUS_LABELS[e.status] }}</span></td>
-                <td class="actions-col"><button type="button" class="action" :aria-label="`Editar a ${fullName(e)}`" @click="editing = { employee: e }"><Pencil :size="15" /> Editar</button></td>
+                <td data-label="Puesto">{{ roleName(e.roleId) }}</td>
+                <td data-label="Complejo">{{ store.complexName(e.complexId) }}</td>
+                <td data-label="Contacto"><span class="stack"><span>{{ e.email ?? '—' }}</span><small>{{ e.phone ?? '' }}</small></span></td>
+                <td data-label="Estado"><span class="pill" :class="tone(e.status)">{{ EMPLOYEE_STATUS_LABELS[e.status] }}</span></td>
+                <td class="actions-col"><div class="row-actions"><button type="button" class="icon-btn" :aria-label="`Editar a ${fullName(e)}`" title="Editar" @click="editing = { employee: e }"><Pencil :size="16" aria-hidden="true" /></button></div></td>
               </tr>
             </tbody>
           </table>
@@ -89,15 +91,15 @@ const initials = (e: Employee) => `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}
 
     <StateView v-else :loading="roles.isPending.value" :error="roles.error.value" skeleton="rows" @retry="roles.refetch()">
       <div class="panel table-wrap">
-        <table class="data">
+        <table v-table-roles class="data cards">
           <thead><tr><th>Puesto</th><th>Área</th><th>Mando</th><th>Responsabilidades</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
             <tr v-for="r in roles.data.value" :key="r.id">
               <td><strong>{{ r.name }}</strong></td>
-              <td>{{ r.area || '—' }}</td>
-              <td>{{ r.isManager ? 'Sí' : 'No' }}</td>
-              <td>{{ r.responsibilities || '—' }}</td>
-              <td class="actions-col"><button type="button" class="action" :aria-label="`Editar ${r.name}`" @click="editingRole = { role: r }"><Pencil :size="15" /> Editar</button></td>
+              <td data-label="Área">{{ r.area || '—' }}</td>
+              <td data-label="Mando">{{ r.isManager ? 'Sí' : 'No' }}</td>
+              <td data-label="Responsabilidades">{{ r.responsibilities || '—' }}</td>
+              <td class="actions-col"><div class="row-actions"><button type="button" class="icon-btn" :aria-label="`Editar ${r.name}`" title="Editar" @click="editingRole = { role: r }"><Pencil :size="16" aria-hidden="true" /></button></div></td>
             </tr>
           </tbody>
         </table>
@@ -112,5 +114,5 @@ const initials = (e: Employee) => `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}
 <style scoped>
 .toolbar .search svg { top: auto; bottom: 11px; transform: none; }
 .person { display: flex; align-items: center; gap: 10px; }
-.avatar { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-size: 12px; font-weight: 700; }
+.avatar { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-size: var(--text-xs); font-weight: 700; }
 </style>

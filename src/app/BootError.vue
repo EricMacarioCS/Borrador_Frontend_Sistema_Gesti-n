@@ -31,6 +31,6 @@ const reload = () => window.location.reload()
 <style scoped>
 .boot-error { min-height: 100dvh; display: grid; place-items: center; padding: 20px; background: var(--navy-950); }
 .card { max-width: 460px; padding: 32px; display: grid; gap: 12px; text-align: center; justify-items: center; }
-h1 { font: 800 24px var(--font-title); }
+h1 { font: 800 var(--text-xl) var(--font-title); }
 p, small { color: var(--muted); }
 </style>

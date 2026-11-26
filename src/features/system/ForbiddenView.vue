@@ -18,6 +18,6 @@ const home = computed(() => firstAllowed(store.can))
 </template>
 
 <style scoped>
-h1 { font: 700 20px var(--font-title); color: var(--ink); }
+h1 { font: 700 var(--text-xl) var(--font-title); color: var(--ink); }
 svg { color: var(--blue); }
 </style>

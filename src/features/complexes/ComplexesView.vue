@@ -33,9 +33,9 @@ const totals = computed(() => ({
 
     <div class="metric-grid spaced">
       <article class="panel metric"><div class="metric-top"><span>Complejos</span><span class="metric-icon"><Building2 :size="17" /></span></div><strong>{{ store.complexes.length }}</strong></article>
-      <article class="panel metric"><div class="metric-top"><span>Ciudades</span><span class="metric-icon"><MapPin :size="17" /></span></div><strong>{{ cities.length }}</strong></article>
-      <article class="panel metric"><div class="metric-top"><span>Salas</span><span class="metric-icon"><Armchair :size="17" /></span></div><strong>{{ totals.rooms }}</strong></article>
-      <article class="panel metric"><div class="metric-top"><span>Asientos</span><span class="metric-icon"><Armchair :size="17" /></span></div><strong>{{ totals.seats.toLocaleString('es-MX') }}</strong></article>
+      <article class="panel metric"><div class="metric-top"><span>Ciudades</span><span class="metric-icon success"><MapPin :size="17" /></span></div><strong>{{ cities.length }}</strong></article>
+      <article class="panel metric"><div class="metric-top"><span>Salas</span><span class="metric-icon violet"><Armchair :size="17" /></span></div><strong>{{ totals.rooms }}</strong></article>
+      <article class="panel metric"><div class="metric-top"><span>Asientos</span><span class="metric-icon warning"><Armchair :size="17" /></span></div><strong>{{ totals.seats.toLocaleString('es-MX') }}</strong></article>
     </div>
 
     <section v-for="[city, list] in cities" :key="city" class="city" :aria-labelledby="`ciudad-${city}`">
@@ -55,7 +55,7 @@ const totals = computed(() => ({
           <p class="muted small">ID en Vista: {{ complex.vistaId ?? 'sin asignar' }} · /{{ complex.slug }}</p>
           <div class="actions">
             <button type="button" class="btn btn-secondary btn-small" @click="roomsOf = complex"><Armchair :size="15" /> Salas y asientos</button>
-            <button type="button" class="action" :aria-label="`Editar datos de ${complex.name}`" @click="editing = complex"><Pencil :size="15" /> Datos</button>
+            <button type="button" class="icon-btn" :aria-label="`Editar datos de ${complex.name}`" title="Editar datos" @click="editing = complex"><Pencil :size="16" aria-hidden="true" /></button>
           </div>
         </article>
       </div>
@@ -69,13 +69,14 @@ const totals = computed(() => ({
 <style scoped>
 .spaced { margin-bottom: 20px; }
 .city { margin-top: 18px; }
-.city h2 { margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: var(--blue); font: 700 15px var(--font-title); text-transform: uppercase; letter-spacing: .06em; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.city h2 { margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: var(--blue); font: 700 var(--text-l) var(--font-title); text-transform: uppercase; letter-spacing: .06em; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 16px; }
 .card { padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
 .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.top h3 { font: 700 17px var(--font-title); }
+.top h3 { font: 700 var(--text-l) var(--font-title); }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px 0; border-block: 1px solid var(--line); }
-.stats dt { color: var(--muted); font-size: 12px; }
-.stats dd { margin: 0; font: 700 16px var(--font-title); }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stats dt { color: var(--muted); font-size: var(--text-xs); }
+.stats dd { margin: 0; font: 700 var(--text-l) var(--font-title); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.actions .icon-btn { color: var(--blue); }
 </style>

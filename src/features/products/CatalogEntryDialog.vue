@@ -86,7 +86,8 @@ const save = useMutation({
       <label class="check"><input v-model="available" type="checkbox" /> Disponible para la venta</label>
 
       <template v-if="product?.rules.length">
-        <h3 class="form-section">Opciones en este complejo</h3>
+        <div class="form-section">
+          <h3 class="form-section-title">Opciones en este complejo</h3>
         <section v-for="rule in product.rules" :key="rule.id" class="full rule" :aria-label="rule.title">
           <h4>{{ rule.title }} <small>{{ !rule.min ? `opcional, hasta ${rule.max}` : rule.min === rule.max ? `obligatorio, elige ${rule.min}` : `obligatorio, elige de ${rule.min} a ${rule.max}` }}</small></h4>
           <table class="data">
@@ -94,12 +95,13 @@ const save = useMutation({
             <tbody>
               <tr v-for="option in rule.options" :key="option.id" :class="{ 'row-off': !setting(option.id).active }">
                 <td><input v-model="setting(option.id).active" type="checkbox" :aria-label="`${option.name} se vende`" /></td>
-                <td>{{ option.name }}<small v-if="option.isDefault" class="muted"> · predeterminada</small></td>
+                <td>{{ option.name }}<small v-if="option.isDefault" class="muted"> · predeterminada</small> <span v-if="!setting(option.id).active" class="pill muted">No se vende</span></td>
                 <td><MoneyInput v-model="setting(option.id).extraCents" :label="`Precio adicional de ${option.name}`" /></td>
               </tr>
             </tbody>
           </table>
         </section>
+        </div>
         <p v-if="ruleProblem" class="notice danger full" role="alert">{{ ruleProblem }}: deja suficientes opciones activas para que el cliente pueda elegir.</p>
       </template>
     </form>
@@ -111,9 +113,9 @@ const save = useMutation({
 </template>
 
 <style scoped>
-.rule { border: 1px solid var(--line); border-radius: var(--radius-s); overflow: hidden; }
-.rule h4 { padding: 10px 14px; background: var(--surface-soft); font: 700 14px var(--font-title); }
-.rule h4 small { color: var(--muted); font: 400 12px var(--font-body); }
+.rule { min-width: 0; margin-top: 10px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface); overflow-x: auto; }
+.rule h4 { padding: 10px 14px; font: 700 var(--text-m) var(--font-title); }
+.rule h4 small { color: var(--muted); font: 400 var(--text-xs) var(--font-body); }
 .rule td { padding: 6px 14px; }
 .rule input[type='checkbox'] { width: 17px; height: 17px; accent-color: var(--blue); }
 </style>

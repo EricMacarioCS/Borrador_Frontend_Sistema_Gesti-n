@@ -7,10 +7,12 @@ import { keys, useScreenings } from '@/app/queries'
 import { useServices } from '@/app/services'
 import { useSessionStore } from '@/app/stores/session'
 import type { Screening } from '@/domain/models'
+import RowMenu from '@/shared/ui/RowMenu.vue'
 import StateView from '@/shared/ui/StateView.vue'
 import { confirmAction, toast, toastError } from '@/shared/composables/feedback'
 import { addDays, formatDate } from '@/shared/lib/datetime'
 import { normalizeText } from '@/shared/lib/text'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 const store = useSessionStore()
 const { screenings: port } = useServices()
@@ -110,14 +112,15 @@ async function retire(ids: string[]) {
         <input id="f-hasta" v-model="to" class="input" type="date" :min="from" />
       </div>
       <div class="presets">
-        <button type="button" class="btn btn-ghost btn-small" @click="setRange(1)">Hoy</button>
-        <button type="button" class="btn btn-ghost btn-small" @click="setRange(7)">7 días</button>
-        <button type="button" class="btn btn-ghost btn-small" @click="setRange(14)">14 días</button>
+        <button type="button" class="btn btn-text btn-small" @click="setRange(1)">Hoy</button>
+        <button type="button" class="btn btn-text btn-small" @click="setRange(7)">7 días</button>
+        <button type="button" class="btn btn-text btn-small" @click="setRange(14)">14 días</button>
       </div>
     </div>
 
     <div class="summary">
       <p><strong>{{ shown.length }}</strong> {{ shown.length === 1 ? 'función' : 'funciones' }}</p>
+      <label v-if="removable.length" class="check select-all"><input type="checkbox" :checked="allChecked" @change="toggleAll(($event.target as HTMLInputElement).checked)" /> Seleccionar todas</label>
       <button v-if="selected.length" type="button" class="btn btn-danger btn-small" :disabled="remove.isPending.value" @click="retire(selected)">
         <Trash2 :size="15" /> Retirar {{ selected.length }} seleccionadas
       </button>
@@ -126,7 +129,7 @@ async function retire(ids: string[]) {
     <StateView :loading="screenings.isPending.value" :error="screenings.error.value" :empty="!shown.length" skeleton="rows"
       empty-title="No hay funciones con estos criterios" empty-text="Cambia los filtros o programa funciones nuevas." @retry="screenings.refetch()">
       <div class="panel table-wrap">
-        <table class="data">
+        <table v-table-roles class="data cards">
           <thead>
             <tr>
               <th><input type="checkbox" :checked="allChecked" aria-label="Seleccionar todas las que se pueden retirar" @change="toggleAll(($event.target as HTMLInputElement).checked)" /></th>
@@ -136,19 +139,22 @@ async function retire(ids: string[]) {
           <tbody v-for="[date, items] in days" :key="date">
             <tr class="day"><th colspan="8" scope="colgroup">{{ formatDate(date) }}<span v-if="date === today"> · Hoy</span></th></tr>
             <tr v-for="s in items" :key="s.id" :class="{ 'row-off': !s.active }">
-              <td><input type="checkbox" :value="s.id" :checked="selected.includes(s.id)" :disabled="s.hasTicketsSold || started(s)" :aria-label="`Seleccionar ${s.movieTitle} ${s.startTime}`"
+              <td data-label="Elegir"><input type="checkbox" :value="s.id" :checked="selected.includes(s.id)" :disabled="s.hasTicketsSold || started(s)" :aria-label="`Seleccionar ${s.movieTitle} ${s.startTime}`"
                 @change="selected = ($event.target as HTMLInputElement).checked ? [...selected, s.id] : selected.filter(id => id !== s.id)" /></td>
-              <td class="time">{{ s.startTime }} – {{ s.endTime }}<small v-if="s.endsNextDay"> (+1 día)</small></td>
+              <td data-label="Horario" class="time">{{ s.startTime }} – {{ s.endTime }}<small v-if="s.endsNextDay"> (+1 día)</small></td>
               <td><span class="stack"><strong>{{ s.movieTitle }}</strong><small>{{ s.language.name }}</small></span></td>
-              <td>{{ store.complexName(s.complexId) }}</td>
-              <td>Sala {{ s.roomNumber }} · {{ s.roomType.name }}</td>
-              <td><span class="tag">{{ s.projection.name }}</span></td>
-              <td><span class="pill" :class="started(s) ? 'muted' : s.active ? 'success' : 'warning'">{{ started(s) ? 'Ya empezó' : s.active ? 'A la venta' : 'Inactiva' }}</span></td>
+              <td data-label="Complejo">{{ store.complexName(s.complexId) }}</td>
+              <td data-label="Sala">Sala {{ s.roomNumber }} · {{ s.roomType.name }}</td>
+              <td data-label="Proyección"><span class="tag">{{ s.projection.name }}</span></td>
+              <td data-label="Estado"><span class="pill" :class="started(s) ? 'muted' : s.active ? 'success' : 'warning'">{{ started(s) ? 'Ya empezó' : s.active ? 'A la venta' : 'Inactiva' }}</span></td>
               <td class="actions-col">
                 <div class="row-actions">
-                  <button type="button" class="action" :disabled="started(s)" :aria-label="`Editar ${s.movieTitle}, ${s.startTime}`" @click="editing = s"><Pencil :size="15" /> Editar</button>
-                  <button type="button" class="action danger" :disabled="s.hasTicketsSold || started(s)" :title="s.hasTicketsSold ? 'Tiene boletos vendidos' : undefined"
-                    :aria-label="`Retirar ${s.movieTitle}, ${s.startTime}`" @click="retire([s.id])"><Trash2 :size="15" /> Retirar</button>
+                  <button type="button" class="icon-btn" :disabled="started(s)" :aria-label="`Editar ${s.movieTitle}, ${s.startTime}`"
+                    :title="started(s) ? 'Ya empezó: no se puede editar' : 'Editar'" @click="editing = s"><Pencil :size="16" aria-hidden="true" /></button>
+                  <RowMenu :label="`Más acciones para ${s.movieTitle}, ${s.startTime}`" :items="[{
+                    label: 'Retirar', icon: Trash2, danger: true, disabled: s.hasTicketsSold || started(s),
+                    hint: s.hasTicketsSold ? 'Tiene boletos vendidos' : 'La función ya empezó', run: () => retire([s.id])
+                  }]" />
                 </div>
               </td>
             </tr>
@@ -168,8 +174,14 @@ async function retire(ids: string[]) {
 .filters .search svg { top: auto; bottom: 11px; transform: none; }
 .presets { display: flex; gap: 4px; }
 .summary { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
-.day th { padding: 10px 14px; background: var(--selection); color: var(--blue); font: 700 13px var(--font-title); text-transform: none; letter-spacing: 0; }
+.data .day th { padding: 10px 14px; background: var(--selection); color: var(--blue); font: 700 var(--text-s) var(--font-title); }
 .time { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
 .time small { color: var(--muted); font-weight: 400; }
+.select-all { display: none; }
+@media (max-width: 640px) {
+  .data .day { padding: 0; }
+  .data .day th { display: block; border-radius: var(--radius-l); }
+  .select-all { display: inline-flex; font-size: var(--text-s); font-weight: 600; }
+}
 td input[type='checkbox'], th input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--blue); }
 </style>

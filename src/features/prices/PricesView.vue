@@ -13,6 +13,7 @@ import StateView from '@/shared/ui/StateView.vue'
 import { useDirtyGuard } from '@/shared/composables/dirty'
 import { confirmAction, toast, toastError } from '@/shared/composables/feedback'
 import { formatMoney } from '@/shared/lib/money'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 const store = useSessionStore()
 const { prices: port } = useServices()
@@ -140,17 +141,17 @@ const typeDialog = ref<{ type: TicketType | null } | null>(null)
         skeleton="rows" @retry="() => { sheet.refetch(); rooms.refetch(); ticketTypes.refetch() }">
         <p v-if="empty" class="notice warning small spaced">{{ empty }} precios vacíos: esas combinaciones no se podrán vender en este complejo.</p>
         <div class="panel table-wrap">
-          <table class="data matrix">
+          <table v-table-roles class="data cards matrix">
             <thead>
               <tr><th>Sala y proyección</th><th v-for="type in rateTypes" :key="type.id">{{ type.name }}</th><th>Cargo en línea</th></tr>
             </thead>
             <tbody>
               <tr v-for="row in rows" :key="`${row.roomType.code}-${row.projection.code}`" :class="{ 'row-off': !row.inUse }">
-                <td><span class="stack"><strong>{{ row.roomType.name }} · {{ row.projection.name }}</strong><small v-if="!row.inUse">Ninguna sala la ofrece hoy</small></span></td>
-                <td v-for="type in rateTypes" :key="type.id">
+                <td><span class="stack"><strong>{{ row.roomType.name }} · {{ row.projection.name }}</strong><span v-if="!row.inUse" class="pill muted off">Ninguna sala la ofrece hoy</span></span></td>
+                <td v-for="type in rateTypes" :key="type.id" :data-label="type.name">
                   <MoneyInput v-model="row.prices[type.id]!" :label="`${type.name}, ${row.roomType.name} ${row.projection.name}`" placeholder="Sin precio" />
                 </td>
-                <td><MoneyInput v-model="row.onlineFeeCents" :label="`Cargo en línea, ${row.roomType.name} ${row.projection.name}`" :invalid="row.onlineFeeCents === null" /></td>
+                <td data-label="Cargo en línea"><MoneyInput v-model="row.onlineFeeCents" :label="`Cargo en línea, ${row.roomType.name} ${row.projection.name}`" :invalid="row.onlineFeeCents === null" /></td>
               </tr>
             </tbody>
           </table>
@@ -161,15 +162,15 @@ const typeDialog = ref<{ type: TicketType | null } | null>(null)
 
     <StateView v-else :loading="ticketTypes.isPending.value" :error="ticketTypes.error.value" skeleton="rows" @retry="ticketTypes.refetch()">
       <div class="panel table-wrap">
-        <table class="data">
+        <table v-table-roles class="data cards">
           <thead><tr><th>Tipo de boleto</th><th>Descripción</th><th>Precio</th><th>Promocional</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
             <tr v-for="type in ticketTypes.data.value" :key="type.id">
               <td><strong>{{ type.name }}</strong></td>
-              <td>{{ type.description || '—' }}</td>
-              <td>{{ type.fixedPriceCents === null ? 'Según la tarifa de cada complejo' : `${formatMoney(type.fixedPriceCents)} fijo` }}</td>
-              <td>{{ type.isPromotional ? 'Sí' : 'No' }}</td>
-              <td class="actions-col"><button type="button" class="action" :aria-label="`Editar ${type.name}`" @click="typeDialog = { type }"><Pencil :size="15" /> Editar</button></td>
+              <td data-label="Descripción">{{ type.description || '—' }}</td>
+              <td data-label="Precio">{{ type.fixedPriceCents === null ? 'Según la tarifa de cada complejo' : `${formatMoney(type.fixedPriceCents)} fijo` }}</td>
+              <td data-label="Promocional">{{ type.isPromotional ? 'Sí' : 'No' }}</td>
+              <td class="actions-col"><div class="row-actions"><button type="button" class="icon-btn" :aria-label="`Editar ${type.name}`" title="Editar" @click="typeDialog = { type }"><Pencil :size="16" aria-hidden="true" /></button></div></td>
             </tr>
           </tbody>
         </table>
@@ -186,6 +187,8 @@ const typeDialog = ref<{ type: TicketType | null } | null>(null)
 .calc-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .matrix td { min-width: 130px; }
 .matrix td:first-child { min-width: 190px; }
+.off { justify-self: start; }
+@media (max-width: 640px) { .matrix td, .matrix td:first-child { min-width: 0; } }
 .spaced { margin-bottom: 12px; }
 .spaced-top { margin-top: 10px; }
 </style>

@@ -27,14 +27,14 @@ import { answerConfirm, confirmState, dismissToast, toasts } from '@/shared/comp
 
 <style scoped>
 .toasts { position: fixed; right: 20px; bottom: 20px; z-index: 3000; display: grid; gap: 10px; width: min(440px, calc(100vw - 40px)); }
-.toast { padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 12px; border-radius: var(--radius-l); background: var(--navy-950); color: #fff; box-shadow: var(--shadow-float); }
-.icon { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #22a06b; }
-.error .icon { background: #dc3b2f; }
+.toast { padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 12px; border-radius: var(--radius-l); background: var(--navy-950); color: var(--on-dark); box-shadow: var(--shadow-float); }
+.icon { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--success-on-dark); }
+.error .icon { background: var(--danger-on-dark); }
 .info .icon { background: var(--blue); }
-.text { flex: 1; font-size: 14px; }
-.undo { padding: 6px 10px; border: 1px solid rgba(255, 255, 255, .35); border-radius: var(--radius-s); background: transparent; color: #fff; font-weight: 600; font-size: 13px; }
-.undo:hover { background: rgba(255, 255, 255, .12); }
-.close { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #b8c7dd; }
-.close:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.text { flex: 1; font-size: var(--text-m); }
+.undo { padding: 6px 10px; border: 1px solid var(--on-dark-border); border-radius: var(--radius-s); background: transparent; color: var(--on-dark); font-weight: 600; font-size: var(--text-s); }
+.undo:hover { background: var(--on-dark-active); }
+.close { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--muted-on-dark); }
+.close:hover { background: var(--on-dark-active); color: var(--on-dark); }
 .confirm-text { color: var(--muted); }
 </style>

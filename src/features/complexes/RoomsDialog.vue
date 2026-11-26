@@ -11,6 +11,7 @@ import type { Complex, Room } from '@/domain/models'
 import BaseDialog from '@/shared/ui/BaseDialog.vue'
 import StateView from '@/shared/ui/StateView.vue'
 import { toast, toastError } from '@/shared/composables/feedback'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 const props = defineProps<{ complex: Complex | null }>()
 const emit = defineEmits<{ close: [] }>()
@@ -54,30 +55,30 @@ const save = useMutation({
     <p class="notice small spaced">El tipo de sala es estructural y define su plano. La proyección (2D o 3D) se elige en cada función, entre las que la sala admite.</p>
     <StateView :loading="rooms.isPending.value" :error="rooms.error.value" skeleton="rows" @retry="rooms.refetch()">
       <div class="table-wrap">
-        <table class="data">
+        <table v-table-roles class="data cards">
           <thead><tr><th>Sala</th><th>Nombre</th><th>Tipo</th><th>Proyecciones</th><th class="num">Asientos</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
             <tr v-for="room in rooms.data.value" :key="room.id">
-              <td><strong>{{ room.number }}</strong></td>
-              <td><input v-model="drafts[room.id]!.name" class="input" :aria-label="`Nombre de la sala ${room.number}`" maxlength="60" /></td>
-              <td>
+              <td data-label="Sala"><strong>{{ room.number }}</strong></td>
+              <td data-label="Nombre"><input v-model="drafts[room.id]!.name" class="input" :aria-label="`Nombre de la sala ${room.number}`" maxlength="60" /></td>
+              <td data-label="Tipo">
                 <select v-model="drafts[room.id]!.type" class="select" :aria-label="`Tipo de la sala ${room.number}`">
                   <option v-for="t in store.reference?.roomTypes" :key="t.code" :value="t.code">{{ t.name }}</option>
                 </select>
               </td>
-              <td>
+              <td data-label="Proyecciones">
                 <span class="projections">
                   <label v-for="p in store.reference?.projections" :key="p.code" class="check">
                     <input v-model="drafts[room.id]!.projections" type="checkbox" :value="p.code" /> {{ p.name }}
                   </label>
                 </span>
               </td>
-              <td class="num">{{ room.capacity }}</td>
+              <td data-label="Asientos" class="num">{{ room.capacity }}</td>
               <td class="actions-col">
                 <div class="row-actions">
-                  <button type="button" class="action" :aria-label="`Plano de la sala ${room.number}`" @click="seatRoom = room"><Armchair :size="15" /> Plano</button>
-                  <button type="button" class="btn btn-primary btn-small" :disabled="!changed(room) || !drafts[room.id]!.projections.length || save.isPending.value"
-                    :aria-label="`Guardar la sala ${room.number}`" @click="save.mutate(room)"><Check :size="15" /> Guardar</button>
+                  <button type="button" class="icon-btn" :aria-label="`Plano de la sala ${room.number}`" title="Plano de asientos" @click="seatRoom = room"><Armchair :size="16" aria-hidden="true" /></button>
+                  <button type="button" class="icon-btn" :disabled="!changed(room) || !drafts[room.id]!.projections.length || save.isPending.value"
+                    :aria-label="`Guardar la sala ${room.number}`" title="Guardar la sala" @click="save.mutate(room)"><Check :size="16" aria-hidden="true" /></button>
                 </div>
               </td>
             </tr>
@@ -94,5 +95,5 @@ const save = useMutation({
 
 <style scoped>
 .spaced { margin-bottom: 12px; }
-.projections { display: flex; gap: 14px; }
+.projections { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 </style>

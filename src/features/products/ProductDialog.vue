@@ -99,78 +99,90 @@ const structures = Object.entries(STRUCTURE_LABELS) as [ProductStructure, string
   <BaseDialog :open="open" :label="product ? `Editar ${product.name}` : 'Nuevo producto'" eyebrow="Productos de la cadena" size="wide" :dirty="dirty" @close="emit('close')">
     <form :id="`${id}-form`" class="form-grid" novalidate @submit.prevent="submit">
       <p class="notice full small">Nombre, opciones y reglas son iguales en todos los complejos. Precio y disponibilidad se definen en el catálogo de cada complejo.</p>
-      <div class="field">
-        <label :for="`${id}-name`">Nombre *</label>
-        <input :id="`${id}-name`" v-model="draft.name" class="input" maxlength="120" />
-      </div>
-      <div class="field">
-        <label :for="`${id}-category`">Categoría *</label>
-        <select :id="`${id}-category`" v-model="draft.categoryId" class="select">
-          <option v-for="c in categories.data.value" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label :for="`${id}-structure`">Estructura</label>
-        <select :id="`${id}-structure`" v-model="draft.structure" class="select">
-          <option v-for="[value, label] in structures" :key="value" :value="value">{{ label }}</option>
-        </select>
-        <p class="field-hint">Simple: sin opciones. Configurable: tamaño o sabor. Combo: paquete con elecciones.</p>
-      </div>
-      <div class="field">
-        <label :for="`${id}-api`">ID en Vista</label>
-        <input :id="`${id}-api`" v-model="draft.apiId" class="input" />
-      </div>
-      <div class="field full">
-        <label :for="`${id}-description`">Descripción</label>
-        <textarea :id="`${id}-description`" v-model="draft.description" class="textarea" maxlength="400" />
-      </div>
-      <div class="field full">
-        <label :for="`${id}-image`">URL de la imagen</label>
-        <input :id="`${id}-image`" v-model="draft.imageUrl" class="input" placeholder="https://…" />
-      </div>
-      <label class="check full"><input v-model="draft.requiresTicketCode" type="checkbox" /> Exige folio de boletos vigente al comprarlo en línea (alimentos y bebidas)</label>
-
-      <h3 class="form-section">Reglas de personalización</h3>
-      <div v-for="(rule, r) in draft.rules" :key="rule.id" class="rule full">
-        <div class="rule-head">
-          <div class="field grow">
-            <label :for="`${id}-rule-${r}`">Título que ve el cliente</label>
-            <input :id="`${id}-rule-${r}`" v-model="rule.title" class="input" placeholder="Ej. Elige de 1 a 2 sabores" />
+      <section class="form-section">
+        <h3 class="form-section-title">Datos del producto</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label :for="`${id}-name`">Nombre *</label>
+            <input :id="`${id}-name`" v-model="draft.name" class="input" maxlength="120" />
           </div>
           <div class="field">
-            <label :for="`${id}-kind-${r}`">Tipo</label>
-            <select :id="`${id}-kind-${r}`" v-model="rule.kind" class="select">
-              <option v-for="[value, label] in kinds" :key="value" :value="value">{{ label }}</option>
+            <label :for="`${id}-category`">Categoría *</label>
+            <select :id="`${id}-category`" v-model="draft.categoryId" class="select">
+              <option v-for="c in categories.data.value" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
-          <div class="field small-field">
-            <label :for="`${id}-min-${r}`">Mínimo</label>
-            <input :id="`${id}-min-${r}`" v-model.number="rule.min" class="input" type="number" min="0" max="20" />
+          <div class="field">
+            <label :for="`${id}-structure`">Estructura</label>
+            <select :id="`${id}-structure`" v-model="draft.structure" class="select">
+              <option v-for="[value, label] in structures" :key="value" :value="value">{{ label }}</option>
+            </select>
+            <p class="field-hint">Simple: sin opciones. Configurable: tamaño o sabor. Combo: paquete con elecciones.</p>
           </div>
-          <div class="field small-field">
-            <label :for="`${id}-max-${r}`">Máximo</label>
-            <input :id="`${id}-max-${r}`" v-model.number="rule.max" class="input" type="number" min="1" max="20" />
+          <div class="field">
+            <label :for="`${id}-api`">ID en Vista</label>
+            <input :id="`${id}-api`" v-model="draft.apiId" class="input" />
           </div>
-          <button type="button" class="icon-btn danger" :aria-label="`Quitar la regla ${rule.title || r + 1}`" @click="draft.rules.splice(r, 1)"><Trash2 :size="16" /></button>
+          <div class="field full">
+            <label :for="`${id}-description`">Descripción</label>
+            <textarea :id="`${id}-description`" v-model="draft.description" class="textarea" maxlength="400" />
+          </div>
+          <div class="field full">
+            <label :for="`${id}-image`">URL de la imagen</label>
+            <input :id="`${id}-image`" v-model="draft.imageUrl" class="input" placeholder="https://…" />
+          </div>
+          <label class="check full"><input v-model="draft.requiresTicketCode" type="checkbox" /> Exige folio de boletos vigente al comprarlo en línea (alimentos y bebidas)</label>
         </div>
-        <label v-if="rule.max > 1" class="check small"><input v-model="rule.allowSplit" type="checkbox" /> Permite mitad y mitad (sin cargo extra por mezclar)</label>
-        <table class="data options">
-          <thead><tr><th>Opción</th><th>Precio adicional</th><th>Predeterminada</th><th>ID en Vista</th><th class="actions-col"><span class="visually-hidden">Quitar</span></th></tr></thead>
-          <tbody>
-            <tr v-for="(option, o) in rule.options" :key="option.id">
-              <td><input v-model="option.name" class="input" :aria-label="`Nombre de la opción ${o + 1}`" /></td>
-              <td><MoneyInput v-model="option.extraCents" :label="`Precio adicional de ${option.name || 'la opción'}`" /></td>
-              <td><input v-model="option.isDefault" type="checkbox" :aria-label="`${option.name} es predeterminada`" /></td>
-              <td><input v-model="option.apiId" class="input" :aria-label="`ID en Vista de ${option.name}`" /></td>
-              <td class="actions-col"><button type="button" class="icon-btn danger" :disabled="rule.options.length === 1" :aria-label="`Quitar ${option.name || 'la opción'}`" @click="rule.options.splice(o, 1)"><Trash2 :size="15" /></button></td>
-            </tr>
-          </tbody>
-        </table>
-        <button type="button" class="btn btn-ghost btn-small" @click="addOption(r)"><Plus :size="15" /> Agregar opción</button>
-      </div>
-      <div class="full">
-        <button type="button" class="btn btn-secondary" @click="addRule"><Plus :size="16" /> Agregar regla</button>
-      </div>
+      </section>
+
+      <section class="form-section">
+        <h3 class="form-section-title">Reglas de personalización</h3>
+        <div class="form-grid">
+          <div v-for="(rule, r) in draft.rules" :key="rule.id" class="rule full">
+            <div class="rule-head">
+              <div class="field grow">
+                <label :for="`${id}-rule-${r}`">Título que ve el cliente</label>
+                <input :id="`${id}-rule-${r}`" v-model="rule.title" class="input" placeholder="Ej. Elige de 1 a 2 sabores" />
+              </div>
+              <div class="field">
+                <label :for="`${id}-kind-${r}`">Tipo</label>
+                <select :id="`${id}-kind-${r}`" v-model="rule.kind" class="select">
+                  <option v-for="[value, label] in kinds" :key="value" :value="value">{{ label }}</option>
+                </select>
+              </div>
+              <div class="field small-field">
+                <label :for="`${id}-min-${r}`">Mínimo</label>
+                <input :id="`${id}-min-${r}`" v-model.number="rule.min" class="input" type="number" min="0" max="20" />
+              </div>
+              <div class="field small-field">
+                <label :for="`${id}-max-${r}`">Máximo</label>
+                <input :id="`${id}-max-${r}`" v-model.number="rule.max" class="input" type="number" min="1" max="20" />
+              </div>
+              <button type="button" class="icon-btn danger" :aria-label="`Quitar la regla ${rule.title || r + 1}`" @click="draft.rules.splice(r, 1)"><Trash2 :size="16" /></button>
+            </div>
+            <label v-if="rule.max > 1" class="check small"><input v-model="rule.allowSplit" type="checkbox" /> Permite mitad y mitad (sin cargo extra por mezclar)</label>
+            <div class="table-wrap">
+              <table class="data options">
+                <thead><tr><th>Opción</th><th>Precio adicional</th><th>Predeterminada</th><th>ID en Vista</th><th class="actions-col"><span class="visually-hidden">Quitar</span></th></tr></thead>
+                <tbody>
+                  <tr v-for="(option, o) in rule.options" :key="option.id">
+                    <td><input v-model="option.name" class="input" :aria-label="`Nombre de la opción ${o + 1}`" /></td>
+                    <td><MoneyInput v-model="option.extraCents" :label="`Precio adicional de ${option.name || 'la opción'}`" /></td>
+                    <td><input v-model="option.isDefault" type="checkbox" :aria-label="`${option.name} es predeterminada`" /></td>
+                    <td><input v-model="option.apiId" class="input" :aria-label="`ID en Vista de ${option.name}`" /></td>
+                    <td class="actions-col"><button type="button" class="icon-btn danger" :disabled="rule.options.length === 1" :aria-label="`Quitar ${option.name || 'la opción'}`" @click="rule.options.splice(o, 1)"><Trash2 :size="15" /></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn-text btn-small" @click="addOption(r)"><Plus :size="15" /> Agregar opción</button>
+          </div>
+          <div class="full">
+            <button type="button" class="btn btn-secondary" @click="addRule"><Plus :size="16" /> Agregar regla</button>
+          </div>
+        </div>
+      </section>
+
       <ul v-if="touched && problems.length" class="notice danger full problems" role="alert">
         <li v-for="problem in problems" :key="problem">{{ problem }}</li>
       </ul>
@@ -183,11 +195,12 @@ const structures = Object.entries(STRUCTURE_LABELS) as [ProductStructure, string
 </template>
 
 <style scoped>
-.rule { padding: 14px; display: grid; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--surface-soft); }
+.rule { min-width: 0; padding: 14px; display: grid; gap: 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-l); background: var(--surface); }
 .rule-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .rule-head .grow { flex: 1 1 240px; }
 .small-field { width: 90px; }
-.options { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-s); }
+.table-wrap { border: 1px solid var(--line); border-radius: var(--radius-s); }
+.options { min-width: 520px; background: var(--surface); }
 .options td { padding: 6px 8px; }
 .options td input[type='checkbox'] { width: 17px; height: 17px; accent-color: var(--blue); }
 .problems { padding-left: 30px; }

@@ -90,15 +90,20 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .dialog { max-width: none; max-height: none; padding: 0; border: 0; background: transparent; color: var(--ink); }
-.dialog::backdrop { background: rgba(11, 21, 48, .55); }
-.dialog-panel { display: flex; flex-direction: column; max-height: min(92dvh, 900px); overflow: hidden; border-radius: var(--radius-dialog); background: var(--surface); box-shadow: var(--shadow-float); }
+.dialog::backdrop { background: var(--backdrop); }
+.dialog-panel { display: flex; flex-direction: column; max-height: min(92dvh, 900px); overflow: hidden; border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-float); }
 .dialog-small { width: min(calc(100vw - 24px), 440px); margin: auto; }
 .dialog-medium { width: min(calc(100vw - 24px), 640px); margin: auto; }
 .dialog-large { width: min(calc(100vw - 24px), 880px); margin: auto; }
 .dialog-wide { width: min(calc(100vw - 24px), 1120px); margin: auto; }
-.dialog-header { padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid var(--line); }
+/* Encabezado y pie quedan fijos: solo el cuerpo se desplaza. */
+.dialog-header { flex: none; padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid var(--line); }
 .titles { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.titles :slotted(h2), .titles h2 { font: 700 19px var(--font-title); }
-.dialog-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px; }
-.dialog-footer { padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); background: var(--surface-soft); }
+.titles :slotted(h2), .titles h2 { font: 700 var(--text-xl) var(--font-title); }
+.dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px; }
+.dialog-footer { flex: none; padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); background: var(--surface-soft); }
+@media (max-width: 640px) {
+  .dialog-header, .dialog-body, .dialog-footer { padding-inline: 14px; }
+  .dialog-panel { max-height: 94dvh; }
+}
 </style>

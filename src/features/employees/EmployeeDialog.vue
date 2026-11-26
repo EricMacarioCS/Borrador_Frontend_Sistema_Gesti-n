@@ -80,57 +80,66 @@ function submit() {
 <template>
   <BaseDialog :open="open" :label="employee ? `Editar a ${employee.firstName} ${employee.lastName}` : 'Registrar empleado'" eyebrow="Personal" size="large" :dirty="dirty" @close="emit('close')">
     <form :id="`${id}-form`" class="form-grid" novalidate @submit.prevent="submit">
-      <h3 class="form-section">Datos personales</h3>
-      <div class="field"><label :for="`${id}-first`">Nombre *</label><input :id="`${id}-first`" v-model="draft.firstName" class="input" maxlength="60" autocomplete="off" /></div>
-      <div class="field"><label :for="`${id}-last`">Apellido paterno *</label><input :id="`${id}-last`" v-model="draft.lastName" class="input" maxlength="60" autocomplete="off" /></div>
-      <div class="field"><label :for="`${id}-second`">Apellido materno</label><input :id="`${id}-second`" v-model="draft.secondLastName" class="input" maxlength="60" autocomplete="off" /></div>
-      <div class="field">
-        <label :for="`${id}-birth`">Fecha de nacimiento *</label>
-        <input :id="`${id}-birth`" v-model="draft.birthDate" class="input" type="date" />
-        <p class="field-error">{{ show('birth') }}</p>
-      </div>
-      <p class="field-error full">{{ show('name') }}</p>
-      <div class="field">
-        <label :for="`${id}-email`">Correo</label>
-        <input :id="`${id}-email`" v-model="draft.email" class="input" type="email" autocomplete="off" />
-        <p class="field-error">{{ show('email') }}</p>
-      </div>
-      <div class="field">
-        <label :for="`${id}-phone`">Teléfono</label>
-        <input :id="`${id}-phone`" v-model="draft.phone" class="input" inputmode="tel" maxlength="10" autocomplete="off" />
-        <p class="field-error">{{ show('phone') }}</p>
-      </div>
+      <section class="form-section">
+        <h3 class="form-section-title">Datos personales</h3>
+        <div class="form-grid">
+          <div class="field"><label :for="`${id}-first`">Nombre *</label><input :id="`${id}-first`" v-model="draft.firstName" class="input" maxlength="60" autocomplete="off" /></div>
+          <div class="field"><label :for="`${id}-last`">Apellido paterno *</label><input :id="`${id}-last`" v-model="draft.lastName" class="input" maxlength="60" autocomplete="off" /></div>
+          <div class="field"><label :for="`${id}-second`">Apellido materno</label><input :id="`${id}-second`" v-model="draft.secondLastName" class="input" maxlength="60" autocomplete="off" /></div>
+          <div class="field">
+            <label :for="`${id}-birth`">Fecha de nacimiento *</label>
+            <input :id="`${id}-birth`" v-model="draft.birthDate" class="input" type="date" />
+            <p class="field-error">{{ show('birth') }}</p>
+          </div>
+          <p class="field-error full">{{ show('name') }}</p>
+          <div class="field">
+            <label :for="`${id}-email`">Correo</label>
+            <input :id="`${id}-email`" v-model="draft.email" class="input" type="email" autocomplete="off" />
+            <p class="field-error">{{ show('email') }}</p>
+          </div>
+          <div class="field">
+            <label :for="`${id}-phone`">Teléfono</label>
+            <input :id="`${id}-phone`" v-model="draft.phone" class="input" inputmode="tel" maxlength="10" autocomplete="off" />
+            <p class="field-error">{{ show('phone') }}</p>
+          </div>
+        </div>
+      </section>
 
-      <h3 class="form-section">Puesto</h3>
-      <div class="field">
-        <label :for="`${id}-complex`">Complejo *</label>
-        <select :id="`${id}-complex`" v-model="draft.complexId" class="select">
-          <option v-for="c in store.complexes" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label :for="`${id}-role`">Puesto *</label>
-        <select :id="`${id}-role`" v-model="draft.roleId" class="select">
-          <option v-for="r in roles.data.value" :key="r.id" :value="r.id">{{ r.name }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label :for="`${id}-hired`">Fecha de contratación *</label>
-        <input :id="`${id}-hired`" v-model="draft.hiredOn" class="input" type="date" />
-      </div>
-      <div class="field">
-        <label :for="`${id}-salary`">Salario mensual *</label>
-        <MoneyInput :id="`${id}-salary`" v-model="draft.salaryCents" />
-        <p class="field-error">{{ show('salary') }}</p>
-      </div>
-      <div class="field">
-        <label :for="`${id}-status`">Estado</label>
-        <select :id="`${id}-status`" v-model="draft.status" class="select">
-          <option v-for="(label, value) in EMPLOYEE_STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
-        </select>
-        <p class="field-hint">Los empleados no se borran: tienen turnos y ventas ligadas. Se dan de baja.</p>
-      </div>
-      <p class="field-error full">{{ show('assignment') }}</p>
+      <section class="form-section">
+        <h3 class="form-section-title">Puesto</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label :for="`${id}-complex`">Complejo *</label>
+            <select :id="`${id}-complex`" v-model="draft.complexId" class="select">
+              <option v-for="c in store.complexes" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label :for="`${id}-role`">Puesto *</label>
+            <select :id="`${id}-role`" v-model="draft.roleId" class="select">
+              <option v-for="r in roles.data.value" :key="r.id" :value="r.id">{{ r.name }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label :for="`${id}-hired`">Fecha de contratación *</label>
+            <input :id="`${id}-hired`" v-model="draft.hiredOn" class="input" type="date" />
+          </div>
+          <div class="field">
+            <label :for="`${id}-salary`">Salario mensual *</label>
+            <MoneyInput :id="`${id}-salary`" v-model="draft.salaryCents" />
+            <p class="field-error">{{ show('salary') }}</p>
+          </div>
+          <div class="field">
+            <label :for="`${id}-status`">Estado</label>
+            <select :id="`${id}-status`" v-model="draft.status" class="select">
+              <option v-for="(label, value) in EMPLOYEE_STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
+            </select>
+            <p class="field-hint">Los empleados no se borran: tienen turnos y ventas ligadas. Se dan de baja.</p>
+          </div>
+          <p class="field-error full">{{ show('assignment') }}</p>
+        </div>
+      </section>
+
     </form>
     <template #footer>
       <button type="button" class="btn btn-secondary" @click="emit('close')">Cancelar</button>

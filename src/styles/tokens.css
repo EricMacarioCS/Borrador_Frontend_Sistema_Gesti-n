@@ -12,39 +12,77 @@
   --accent: #38bdf8;
   --accent-soft: #e6f6fe;
   --selection: #e9f4ff;
-  --violet: #7c5cff;
+  --violet: #5b3fd6;
+  --violet-soft: #f0ecff;
   --ink: #0b1530;
+  --ink-soft: #384a68;
   --muted: #52627d;
   --muted-on-dark: #c3d2e8;
+  --on-dark: #ffffff;
   --line: #dce5f0;
   --line-strong: #c4d5ee;
-  --field-border: #8494ab;
+  /* Borde de campos: al menos 3:1 sobre blanco y sobre el fondo suave de las secciones. */
+  --field-border: #8190a8;
+  --focus-ring: rgba(23, 78, 166, .28);
   --surface: #ffffff;
   --surface-soft: #f4f7fc;
+  --surface-veil: rgba(255, 255, 255, .7);
+  --row-hover: #e9f1fb;
   --background: #f4f7fc;
+  --disabled-bg: #e6ebf2;
+  --disabled-ink: #66738a;
+  --skeleton: #e7eef8;
 
   --success: #067647;
   --success-soft: #e7f6ee;
   --warning: #974006;
   --warning-soft: #fff3e6;
   --danger: #b42318;
+  --danger-strong: #8f1c13;
   --danger-soft: #fdecea;
   --info: #174ea6;
   --info-soft: #e9f4ff;
+  --neutral-soft: #eef1f5;
 
-  /* Series de las gráficas: boletos, alimentos y otros. */
+  /* Sobre fondo oscuro: menú lateral, avisos y ventanas. */
+  --on-dark-hover: rgba(255, 255, 255, .07);
+  --on-dark-active: rgba(255, 255, 255, .11);
+  --on-dark-line: rgba(255, 255, 255, .12);
+  --on-dark-border: rgba(255, 255, 255, .35);
+  --backdrop: rgba(11, 21, 48, .55);
+  --success-on-dark: #1d8a5c;
+  --danger-on-dark: #dc3b2f;
+
+  /* Plano de asientos. */
+  --seat-standard: #c9d8ee;
+  --seat-premium: #7c5cff;
+  --seat-accessible: #0e9f6e;
+  --seat-companion: #f59e0b;
+  --seat-screen: #c9dbf5;
+  --seat-label: #9fb3d1;
+
+  /* Saturación y luminosidad del arte de película sin imagen (el matiz sale del título). */
+  --art-tone: 40% 26%;
 
   --font-title: 'Montserrat Variable', 'Montserrat', system-ui, sans-serif;
   --font-body: 'Inter Variable', 'Inter', system-ui, sans-serif;
 
+  /* Escala tipográfica: seis tamaños. */
+  --text-xs: 12px;
+  --text-s: 13px;
+  --text-m: 14px;
+  --text-l: 16px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+
+  /* Dos radios y dos niveles de elevación: tarjeta y flotante. */
   --radius-s: 8px;
-  --radius-m: 10px;
   --radius-l: 12px;
-  --radius-dialog: 16px;
   --shadow-card: 0 1px 2px rgba(11, 21, 48, .06);
   --shadow-float: 0 18px 44px rgba(11, 21, 48, .22);
 
   --sidebar-width: 256px;
   --topbar-height: 68px;
+  --page-max: 1440px;
   --page-gutter: clamp(16px, 2.6vw, 36px);
 }

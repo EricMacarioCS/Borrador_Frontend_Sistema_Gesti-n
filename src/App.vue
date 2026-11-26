@@ -54,12 +54,12 @@ useIdleTimer(() => config.idleMinutes, () => store.signedIn, async () => {
 <style scoped>
 .shell { min-height: 100dvh; }
 .main-area { min-height: 100dvh; margin-left: var(--sidebar-width); display: flex; flex-direction: column; }
-.page { flex: 1; width: 100%; max-width: 1680px; padding: 24px var(--page-gutter) 48px; outline: none; }
-.demo-bar { padding: 6px var(--page-gutter); background: #fff3c4; color: #5c4300; font-size: 13px; font-weight: 600; }
-.footer { padding: 14px var(--page-gutter); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.page { flex: 1; width: 100%; max-width: var(--page-max); margin-inline: auto; padding: 24px var(--page-gutter) 48px; outline: none; }
+.demo-bar { padding: 6px var(--page-gutter); background: var(--warning-soft); color: var(--warning); font-size: var(--text-s); font-weight: 600; }
+.footer { padding: 14px var(--page-gutter); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-xs); }
 .scrim { display: none; }
 @media (max-width: 1080px) {
   .main-area { margin-left: 0; }
-  .scrim { position: fixed; inset: 0; z-index: 55; display: block; background: rgba(11, 21, 48, .45); }
+  .scrim { position: fixed; inset: 0; z-index: 55; display: block; background: var(--backdrop); }
 }
 </style>

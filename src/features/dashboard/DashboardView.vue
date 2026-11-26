@@ -9,7 +9,8 @@ import { STAGE_LABELS } from '@/domain/labels'
 import type { Movie } from '@/domain/models'
 import { movieStage } from '@/domain/rules'
 import StateView from '@/shared/ui/StateView.vue'
-import { addDays, formatDate, formatDateTime } from '@/shared/lib/datetime'
+import { addDays, dayParts, formatDate, formatDateTime } from '@/shared/lib/datetime'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 /**
  * Panel operativo: lo que pasa hoy y lo que requiere atención. No muestra ventas ni ingresos;
@@ -63,6 +64,13 @@ const unavailable = computed(() => catalogs.value
 const catalogsLoading = computed(() => catalogs.value.some(query => query.isPending))
 
 const attentionCount = computed(() => withoutScreenings.value.length + endingSoon.value.length)
+
+/* Color de la etiqueta según el área de la bitácora; las no listadas quedan neutras. */
+const AREA_TONES: Record<string, string> = {
+  'Películas': 'info', 'Funciones': 'success', 'Dulcería': 'warning', 'Contenido': 'violet',
+  'Tarifas': 'danger', 'Promociones': 'danger', 'Club': 'danger', 'Empleados': 'neutral', 'Complejos': 'neutral'
+}
+const areaTone = (area: string) => AREA_TONES[area] ?? 'neutral'
 </script>
 
 <template>
@@ -91,40 +99,41 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
         <span class="foot">{{ count(pending.length) }} por empezar · {{ scopeLabel }}</span>
       </article>
       <article class="panel metric">
-        <div class="metric-top"><span>Películas en cartelera</span><span class="metric-icon"><Clapperboard :size="17" /></span></div>
+        <div class="metric-top"><span>Películas en cartelera</span><span class="metric-icon success"><Clapperboard :size="17" /></span></div>
         <strong>{{ movies.isPending.value ? '—' : count(showing.length) }}</strong>
         <span class="foot">{{ showing.filter(m => stageOf(m) === 'premiere').length }} en periodo de estreno</span>
       </article>
-      <article class="panel metric">
-        <div class="metric-top"><span>Estrenos y preventas</span><span class="metric-icon"><Sparkles :size="17" /></span></div>
+      <article class="panel metric" :class="{ highlight: releases.length }">
+        <div class="metric-top"><span>Estrenos y preventas</span><span class="metric-icon warning"><Sparkles :size="17" /></span></div>
         <strong>{{ movies.isPending.value ? '—' : count(releases.length) }}</strong>
         <span class="foot">Estrenan esta semana o ya están en preventa</span>
       </article>
       <article class="panel metric">
-        <div class="metric-top"><span>Complejos</span><span class="metric-icon"><Building2 :size="17" /></span></div>
+        <div class="metric-top"><span>Complejos</span><span class="metric-icon violet"><Building2 :size="17" /></span></div>
         <strong>{{ scopeComplexes.length }}</strong>
         <span class="foot">{{ scopeComplexes.reduce((sum, c) => sum + c.roomCount, 0) }} salas · {{ count(scopeComplexes.reduce((sum, c) => sum + c.seatCount, 0)) }} asientos</span>
       </article>
     </div>
 
+    <!-- Primera fila: lo de hoy y lo que necesita una decisión. -->
     <div class="grid">
       <article class="panel">
         <div class="panel-head">
           <div><h2>Próximas funciones de hoy</h2><p>{{ scopeLabel }} · {{ formatDate(today) }}</p></div>
-          <RouterLink to="/funciones" class="action">Ver programación <ArrowUpRight :size="14" /></RouterLink>
+          <RouterLink to="/funciones" class="btn btn-text btn-small">Ver programación <ArrowUpRight :size="14" /></RouterLink>
         </div>
         <StateView :loading="week.isPending.value" :error="week.error.value" :empty="!nextUp.length" skeleton="rows"
           empty-title="No quedan funciones hoy" empty-text="Las funciones de hoy ya empezaron o no hay programación." @retry="week.refetch()">
           <div class="table-wrap">
-            <table class="data">
+            <table v-table-roles class="data cards">
               <thead><tr><th>Hora</th><th>Película</th><th>Complejo</th><th>Sala</th><th>Proyección</th></tr></thead>
               <tbody>
                 <tr v-for="s in nextUp" :key="s.id">
-                  <td class="time">{{ s.startTime }}</td>
+                  <td data-label="Hora" class="time">{{ s.startTime }}</td>
                   <td><span class="stack"><strong>{{ s.movieTitle }}</strong><small>{{ s.language.name }}</small></span></td>
-                  <td>{{ store.complexName(s.complexId) }}</td>
-                  <td>Sala {{ s.roomNumber }} · {{ s.roomType.name }}</td>
-                  <td><span class="tag">{{ s.projection.name }}</span></td>
+                  <td data-label="Complejo">{{ store.complexName(s.complexId) }}</td>
+                  <td data-label="Sala">Sala {{ s.roomNumber }} · {{ s.roomType.name }}</td>
+                  <td data-label="Proyección"><span class="tag">{{ s.projection.name }}</span></td>
                 </tr>
               </tbody>
             </table>
@@ -132,22 +141,7 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
         </StateView>
       </article>
 
-      <article class="panel">
-        <div class="panel-head"><div><h2>Estrenos y preventas</h2><p>Estrenos de los próximos 7 días y preventas abiertas</p></div></div>
-        <StateView :loading="movies.isPending.value" :error="movies.error.value" :empty="!releases.length" skeleton="rows"
-          empty-title="Sin estrenos esta semana" @retry="movies.refetch()">
-          <ul class="list" role="list">
-            <li v-for="m in releases" :key="m.id">
-              <span class="stack"><strong>{{ m.title }}</strong><small>Estreno {{ m.releaseDate ? formatDate(m.releaseDate, 'short') : 'sin fecha' }}</small></span>
-              <span class="pill" :class="stageOf(m) === 'presale' ? 'info' : 'muted'">{{ STAGE_LABELS[stageOf(m)] }}</span>
-            </li>
-          </ul>
-        </StateView>
-      </article>
-    </div>
-
-    <div class="grid">
-      <article class="panel">
+      <article class="panel attention" :class="{ alert: attentionCount }">
         <div class="panel-head">
           <div><h2>Requiere atención</h2><p>Cartelera de los próximos 7 días · {{ scopeLabel }}</p></div>
           <span v-if="attentionCount" class="pill warning">{{ attentionCount }}</span>
@@ -156,12 +150,33 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
           empty-title="Todo en orden" empty-text="Las películas en cartelera tienen funciones y ninguna termina esta semana." @retry="movies.refetch(); week.refetch()">
           <ul class="list" role="list">
             <li v-for="m in withoutScreenings" :key="`sin-${m.id}`">
+              <span class="marker danger" aria-hidden="true" />
               <span class="stack"><strong>{{ m.title }}</strong><small>En cartelera sin funciones programadas</small></span>
-              <RouterLink v-if="store.can('screenings.manage')" to="/funciones/programar" class="action">Programar</RouterLink>
+              <RouterLink v-if="store.can('screenings.manage')" to="/funciones/programar" class="btn btn-text btn-small">Programar</RouterLink>
             </li>
             <li v-for="m in endingSoon" :key="`fin-${m.id}`">
+              <span class="marker warning" aria-hidden="true" />
               <span class="stack"><strong>{{ m.title }}</strong><small>Último día: {{ formatDate(m.lastDay!, 'short') }}</small></span>
-              <span class="pill muted">Termina pronto</span>
+              <span class="pill warning">Termina pronto</span>
+            </li>
+          </ul>
+        </StateView>
+      </article>
+    </div>
+
+    <div class="grid secondary">
+      <article class="panel">
+        <div class="panel-head"><div><h2>Estrenos y preventas</h2><p>Estrenos de los próximos 7 días y preventas abiertas</p></div></div>
+        <StateView :loading="movies.isPending.value" :error="movies.error.value" :empty="!releases.length" skeleton="rows"
+          empty-title="Sin estrenos esta semana" @retry="movies.refetch()">
+          <ul class="list" role="list">
+            <li v-for="m in releases" :key="m.id">
+              <span class="date-mark" :class="{ presale: stageOf(m) === 'presale' }" aria-hidden="true">
+                <template v-if="m.releaseDate"><strong>{{ dayParts(m.releaseDate).day }}</strong><small>{{ dayParts(m.releaseDate).month }}</small></template>
+                <strong v-else>—</strong>
+              </span>
+              <span class="stack"><strong>{{ m.title }}</strong><small>Estreno {{ m.releaseDate ? formatDate(m.releaseDate, 'short') : 'sin fecha' }}</small></span>
+              <span class="pill" :class="stageOf(m) === 'presale' ? 'info' : 'muted'">{{ STAGE_LABELS[stageOf(m)] }}</span>
             </li>
           </ul>
         </StateView>
@@ -170,12 +185,13 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
       <article v-if="showProducts" class="panel">
         <div class="panel-head">
           <div><h2>Productos no disponibles</h2><p>Dulcería · {{ scopeLabel }}</p></div>
-          <RouterLink to="/dulceria" class="action">Ver dulcería <ArrowUpRight :size="14" /></RouterLink>
+          <RouterLink to="/dulceria" class="btn btn-text btn-small">Ver dulcería <ArrowUpRight :size="14" /></RouterLink>
         </div>
         <StateView :loading="catalogsLoading" :empty="!unavailable.length" skeleton="rows"
           empty-title="Todo disponible" empty-text="Ningún producto está marcado como no disponible.">
           <ul class="list" role="list">
             <li v-for="item in unavailable" :key="item.key">
+              <span class="marker danger" aria-hidden="true" />
               <span class="stack"><strong>{{ item.name }}</strong><small>{{ item.complex }}</small></span>
               <span class="pill danger">No disponible</span>
             </li>
@@ -188,7 +204,7 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
         <StateView :loading="activity.isPending.value" :error="activity.error.value" :empty="!activity.data.value?.length" skeleton="rows" empty-title="Sin actividad" @retry="activity.refetch()">
           <ol class="activity" role="list">
             <li v-for="item in activity.data.value" :key="item.id">
-              <span class="tag">{{ item.area }}</span>
+              <span class="tag area" :class="areaTone(item.area)">{{ item.area }}</span>
               <p>{{ item.summary }}</p>
               <small>{{ item.actor }} · {{ formatDateTime(item.at) }}</small>
             </li>
@@ -201,18 +217,36 @@ const attentionCount = computed(() => withoutScreenings.value.length + endingSoo
 
 <style scoped>
 .scope { min-width: 220px; }
-.foot { color: var(--muted); font-size: 12px; }
+.foot { color: var(--muted); font-size: var(--text-xs); }
+.metric.highlight { border-color: var(--warning); box-shadow: inset 0 3px 0 var(--warning), var(--shadow-card); }
+.metric.highlight strong { color: var(--warning); }
 .grid { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
-.grid + .grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid.secondary { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.attention.alert { border-color: var(--warning); box-shadow: inset 0 3px 0 var(--warning), var(--shadow-card); }
+.attention.alert .panel-head { background: var(--warning-soft); border-radius: var(--radius-l) var(--radius-l) 0 0; }
 .time { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .list { padding: 4px 20px 12px; display: grid; }
 .list li { padding: 11px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
 .list li:last-child { border-bottom: 0; }
-.list .stack { min-width: 0; }
+.list .stack { min-width: 0; flex: 1; }
+.marker { align-self: stretch; width: 4px; flex: none; border-radius: 999px; }
+.marker.danger { background: var(--danger); }
+.marker.warning { background: var(--warning); }
+.date-mark { width: 46px; flex: none; padding: 4px 0; display: grid; justify-items: center; border-radius: var(--radius-s); background: var(--info-soft); color: var(--info); line-height: 1.15; }
+.date-mark.presale { background: var(--warning-soft); color: var(--warning); }
+.date-mark strong { font: 800 var(--text-l)/1.15 var(--font-title); }
+.date-mark small { font-size: var(--text-xs); font-weight: 600; }
 .activity { padding: 6px 20px 16px; display: grid; }
 .activity li { padding: 12px 0; display: grid; gap: 4px; justify-items: start; border-bottom: 1px solid var(--line); }
 .activity li:last-child { border-bottom: 0; }
 .activity small { color: var(--muted); }
+.area { border-color: transparent; }
+.area.info { background: var(--info-soft); color: var(--info); }
+.area.success { background: var(--success-soft); color: var(--success); }
+.area.warning { background: var(--warning-soft); color: var(--warning); }
+.area.danger { background: var(--danger-soft); color: var(--danger); }
+.area.violet { background: var(--violet-soft); color: var(--violet); }
+.area.neutral { background: var(--neutral-soft); color: var(--ink-soft); }
 @media (max-width: 1180px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { .scope { min-width: 0; flex: 1 1 100%; } }
 </style>

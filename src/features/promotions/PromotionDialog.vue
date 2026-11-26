@@ -76,53 +76,63 @@ const projectionOptions = computed(() => (store.reference?.projections ?? []).ma
 <template>
   <BaseDialog :open="open" :label="promotion ? `Editar ${promotion.name}` : 'Nueva promoción'" eyebrow="Promociones" size="large" :dirty="dirty" @close="emit('close')">
     <form :id="`${id}-form`" class="form-grid" novalidate @submit.prevent="submit">
-      <div class="field full">
-        <label :for="`${id}-name`">Nombre *</label>
-        <input :id="`${id}-name`" v-model="draft.name" class="input" maxlength="120" />
-      </div>
-      <div class="field">
-        <label :for="`${id}-kind`">Tipo</label>
-        <select :id="`${id}-kind`" v-model="draft.kind" class="select">
-          <option v-for="[value, label] in kinds" :key="value" :value="value">{{ label }}</option>
-        </select>
-      </div>
-      <div v-if="draft.kind === 'percent'" class="field">
-        <label :for="`${id}-percent`">Porcentaje de descuento *</label>
-        <input :id="`${id}-percent`" v-model.number="draft.rules.percent" class="input" type="number" min="1" max="100" />
-      </div>
-      <div class="field">
-        <label :for="`${id}-level`">Nivel del Club</label>
-        <select :id="`${id}-level`" v-model="draft.clubLevelId" class="select">
-          <option :value="null">Para todo el público</option>
-          <option v-for="level in levels.data.value" :key="level.id" :value="level.id">Solo {{ level.name }}</option>
-        </select>
-      </div>
-      <div class="field full">
-        <label :for="`${id}-description`">Descripción *</label>
-        <textarea :id="`${id}-description`" v-model="draft.description" class="textarea" maxlength="500" />
-      </div>
-      <div class="field full">
-        <label :for="`${id}-restrictions`">Restricciones *</label>
-        <textarea :id="`${id}-restrictions`" v-model="draft.restrictions" class="textarea" maxlength="1000" />
-        <p class="field-hint">Se publican tal cual en el sitio web.</p>
-      </div>
-      <div class="field">
-        <label :for="`${id}-from`">Desde *</label>
-        <input :id="`${id}-from`" v-model="draft.validFrom" class="input" type="date" />
-      </div>
-      <div class="field">
-        <label :for="`${id}-to`">Hasta</label>
-        <input :id="`${id}-to`" v-model="draft.validTo" class="input" type="date" :min="draft.validFrom" />
-        <p class="field-hint">Vacío: sin vencimiento.</p>
-      </div>
-      <label class="check full"><input v-model="draft.appliesToAll" type="checkbox" /> Aplica en toda la cadena</label>
-      <MultiSelect v-if="!draft.appliesToAll" v-model="draft.complexIds" class="full" label="Complejos *" :options="complexOptions" placeholder="Elige los complejos" />
+      <section class="form-section">
+        <h3 class="form-section-title">Datos de la promoción</h3>
+        <div class="form-grid">
+          <div class="field full">
+            <label :for="`${id}-name`">Nombre *</label>
+            <input :id="`${id}-name`" v-model="draft.name" class="input" maxlength="120" />
+          </div>
+          <div class="field">
+            <label :for="`${id}-kind`">Tipo</label>
+            <select :id="`${id}-kind`" v-model="draft.kind" class="select">
+              <option v-for="[value, label] in kinds" :key="value" :value="value">{{ label }}</option>
+            </select>
+          </div>
+          <div v-if="draft.kind === 'percent'" class="field">
+            <label :for="`${id}-percent`">Porcentaje de descuento *</label>
+            <input :id="`${id}-percent`" v-model.number="draft.rules.percent" class="input" type="number" min="1" max="100" />
+          </div>
+          <div class="field">
+            <label :for="`${id}-level`">Nivel del Club</label>
+            <select :id="`${id}-level`" v-model="draft.clubLevelId" class="select">
+              <option :value="null">Para todo el público</option>
+              <option v-for="level in levels.data.value" :key="level.id" :value="level.id">Solo {{ level.name }}</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label :for="`${id}-description`">Descripción *</label>
+            <textarea :id="`${id}-description`" v-model="draft.description" class="textarea" maxlength="500" />
+          </div>
+          <div class="field full">
+            <label :for="`${id}-restrictions`">Restricciones *</label>
+            <textarea :id="`${id}-restrictions`" v-model="draft.restrictions" class="textarea" maxlength="1000" />
+            <p class="field-hint">Se publican tal cual en el sitio web.</p>
+          </div>
+          <div class="field">
+            <label :for="`${id}-from`">Desde *</label>
+            <input :id="`${id}-from`" v-model="draft.validFrom" class="input" type="date" />
+          </div>
+          <div class="field">
+            <label :for="`${id}-to`">Hasta</label>
+            <input :id="`${id}-to`" v-model="draft.validTo" class="input" type="date" :min="draft.validFrom" />
+            <p class="field-hint">Vacío: sin vencimiento.</p>
+          </div>
+          <label class="check full"><input v-model="draft.appliesToAll" type="checkbox" /> Aplica en toda la cadena</label>
+          <MultiSelect v-if="!draft.appliesToAll" v-model="draft.complexIds" class="full" label="Complejos *" :options="complexOptions" placeholder="Elige los complejos" />
+        </div>
+      </section>
 
-      <h3 class="form-section">Reglas para aplicarla en línea</h3>
-      <p class="notice small full">Con estas reglas el servidor decide solo si la promoción aplica a una compra. Requieren columnas nuevas en <code>promocion</code>; mientras tanto se guardan las restricciones como texto.</p>
-      <MultiSelect v-model="draft.rules.weekdays" label="Días" :options="dayOptions" placeholder="Todos los días" />
-      <MultiSelect v-model="draft.rules.roomTypes" label="Tipos de sala" :options="roomTypeOptions" placeholder="Todos" />
-      <MultiSelect v-model="draft.rules.projections" label="Proyección" :options="projectionOptions" placeholder="Todas" />
+      <section class="form-section">
+        <h3 class="form-section-title">Reglas para aplicarla en línea</h3>
+        <div class="form-grid">
+          <p class="notice small full">Con estas reglas el servidor decide solo si la promoción aplica a una compra. Requieren columnas nuevas en <code>promocion</code>; mientras tanto se guardan las restricciones como texto.</p>
+          <MultiSelect v-model="draft.rules.weekdays" label="Días" :options="dayOptions" placeholder="Todos los días" />
+          <MultiSelect v-model="draft.rules.roomTypes" label="Tipos de sala" :options="roomTypeOptions" placeholder="Todos" />
+          <MultiSelect v-model="draft.rules.projections" label="Proyección" :options="projectionOptions" placeholder="Todas" />
+        </div>
+      </section>
+
       <p v-if="touched && problem" class="notice danger full" role="alert">{{ problem }}</p>
     </form>
     <template #footer>
@@ -133,5 +143,5 @@ const projectionOptions = computed(() => (store.reference?.projections ?? []).ma
 </template>
 
 <style scoped>
-code { font-size: 12px; }
+code { font-size: var(--text-xs); }
 </style>

@@ -19,6 +19,7 @@ import StateView from '@/shared/ui/StateView.vue'
 import { confirmAction, toast, toastError } from '@/shared/composables/feedback'
 import { addDays, formatDate } from '@/shared/lib/datetime'
 import { newIdempotencyKey } from '@/shared/lib/ids'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 const store = useSessionStore()
 const { screenings: port, complexes: complexesPort } = useServices()
@@ -311,17 +312,17 @@ const timeRange = (start: string, duration: number) => {
                 <label v-if="problems.length" class="check small"><input v-model="onlyProblems" type="checkbox" /> Ver solo las que tienen problema</label>
               </div>
               <div class="table-wrap preview">
-                <table class="data">
+                <table v-table-roles class="data cards">
                   <thead><tr><th>Crear</th><th>Película</th><th>Fecha y horario</th><th>Complejo y sala</th><th>Formato</th><th>Resultado</th></tr></thead>
                   <tbody>
                     <tr v-for="row in shownRows" :key="row.key" :class="{ 'row-off': draft.excluded.includes(row.key) || row.problem }">
-                      <td><input type="checkbox" :checked="!row.problem && !draft.excluded.includes(row.key)" :disabled="!!row.problem"
+                      <td data-label="Crear"><input type="checkbox" :checked="!row.problem && !draft.excluded.includes(row.key)" :disabled="!!row.problem"
                         :aria-label="`Crear ${row.movieTitle}, ${row.date}, ${row.startTime}`" @change="toggleRow(row.key)" /></td>
                       <td><span class="stack"><strong>{{ row.movieTitle }}</strong><small>{{ row.language.name }}</small></span></td>
-                      <td><span class="stack"><span>{{ formatDate(row.date, 'short') }}</span><small>{{ row.startTime }}–{{ row.endTime }}{{ row.endsNextDay ? ' (+1 día)' : '' }}</small></span></td>
-                      <td><span class="stack"><span>{{ store.complexName(row.complexId) }}</span><small>{{ row.roomNumber ? `Sala ${row.roomNumber}` : 'Sin sala' }}</small></span></td>
-                      <td><span class="tags"><span class="tag">{{ row.roomType.name }}</span><span class="tag">{{ row.projection.name }}</span></span></td>
-                      <td>
+                      <td data-label="Fecha y horario"><span class="stack"><span>{{ formatDate(row.date, 'short') }}</span><small>{{ row.startTime }}–{{ row.endTime }}{{ row.endsNextDay ? ' (+1 día)' : '' }}</small></span></td>
+                      <td data-label="Complejo y sala"><span class="stack"><span>{{ store.complexName(row.complexId) }}</span><small>{{ row.roomNumber ? `Sala ${row.roomNumber}` : 'Sin sala' }}</small></span></td>
+                      <td data-label="Formato"><span class="tags"><span class="tag">{{ row.roomType.name }}</span><span class="tag">{{ row.projection.name }}</span></span></td>
+                      <td data-label="Resultado">
                         <span v-if="row.problem" class="problem">{{ row.problem }}</span>
                         <span v-else class="pill" :class="draft.excluded.includes(row.key) ? 'muted' : 'success'">{{ draft.excluded.includes(row.key) ? 'No se creará' : 'Lista' }}</span>
                       </td>
@@ -336,7 +337,7 @@ const timeRange = (start: string, duration: number) => {
 
         <div class="footer">
           <button v-if="draft.step > 1" type="button" class="btn btn-secondary" @click="goTo(draft.step - 1)"><ArrowLeft :size="16" /> Anterior</button>
-          <button type="button" class="btn btn-ghost" @click="startOver">Empezar de nuevo</button>
+          <button type="button" class="btn btn-text" @click="startOver">Empezar de nuevo</button>
           <button v-if="draft.step < 4" type="button" class="btn btn-primary next" @click="goTo(draft.step + 1)">Siguiente: {{ STEPS[draft.step]!.title }} <ArrowRight :size="16" /></button>
           <button v-else type="button" class="btn btn-primary next" :disabled="!ready.length || create.isPending.value" @click="create.mutate()">
             <Check :size="16" /> {{ create.isPending.value ? 'Creando…' : `Crear ${ready.length} ${ready.length === 1 ? 'función' : 'funciones'}` }}
@@ -361,39 +362,38 @@ const timeRange = (start: string, duration: number) => {
 <style scoped>
 .steps { margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; list-style: none; }
 .steps button { width: 100%; padding: 10px; display: flex; align-items: center; gap: 8px; border: 0; border-bottom: 3px solid var(--line); background: transparent; color: var(--muted); font-weight: 600; text-align: left; }
-.steps .n { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--line); color: var(--ink); font-size: 13px; }
+.steps .n { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--line); color: var(--ink); font-size: var(--text-s); }
 .steps .current { border-color: var(--blue); color: var(--blue); }
-.steps .current .n { background: var(--blue); color: #fff; }
+.steps .current .n { background: var(--blue); color: var(--on-dark); }
 .steps .done { border-color: var(--success); color: var(--success); }
-.steps .done .n { background: var(--success); color: #fff; }
+.steps .done .n { background: var(--success); color: var(--on-dark); }
 .wizard { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 .wizard.wide { grid-template-columns: minmax(0, 1fr); }
 .main { display: grid; gap: 14px; }
-.main h2 { font: 700 20px var(--font-title); outline: none; }
+.main h2 { font: 700 var(--text-xl) var(--font-title); outline: none; }
 .picked { display: grid; gap: 8px; }
 .picked li { padding: 10px 12px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: var(--radius-s); }
 .picked .stack { flex: 1; }
 .rooms { display: grid; gap: 6px; }
 .room-group { margin-top: 10px; }
-.room-group h3 { margin-bottom: 8px; font: 700 14px var(--font-title); }
+.room-group h3 { margin-bottom: 8px; font: 700 var(--text-m) var(--font-title); }
 .room-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
 .room { padding: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-s); cursor: pointer; }
 .room.on { border-color: var(--blue); background: var(--selection); }
 .room.off { opacity: .5; cursor: not-allowed; }
 .room input { width: 16px; height: 16px; accent-color: var(--blue); }
 .presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.durations { display: grid; gap: 4px; font-size: 14px; }
+.durations { display: grid; gap: 4px; font-size: var(--text-m); }
 .preview-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .preview { max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-s); }
-.preview thead th { position: sticky; top: 0; z-index: 1; }
-.problem { color: var(--warning); font-size: 13px; font-weight: 600; }
+.problem { color: var(--warning); font-size: var(--text-s); font-weight: 600; }
 .footer { padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--line); }
 .next { margin-left: auto; }
 .side { position: sticky; top: calc(var(--topbar-height) + 16px); display: grid; gap: 12px; }
-.side h2 { font: 700 16px var(--font-title); }
+.side h2 { font: 700 var(--text-l) var(--font-title); }
 .side dl { display: grid; gap: 10px; }
-.side dt { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-.side dd { margin: 0; font-size: 14px; }
+.side dt { color: var(--muted); font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.side dd { margin: 0; font-size: var(--text-m); }
 .side dd.pending { color: var(--muted); font-style: italic; }
 td input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--blue); }
 @media (max-width: 1080px) {
@@ -402,5 +402,9 @@ td input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--blue)
 }
 @media (max-width: 720px) {
   .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .footer .btn { white-space: normal; }
+}
+@media (max-width: 640px) {
+  .preview { max-height: none; overflow: visible; border: 0; }
 }
 </style>

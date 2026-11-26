@@ -36,7 +36,7 @@ const version = __APP_VERSION__
       </article>
 
       <article class="panel panel-pad card">
-        <span class="metric-icon"><Server :size="18" /></span>
+        <span class="metric-icon violet"><Server :size="18" /></span>
         <h2>Ambiente</h2>
         <dl>
           <div><dt>Nombre</dt><dd>{{ config.environmentName }}</dd></div>
@@ -48,7 +48,7 @@ const version = __APP_VERSION__
       </article>
 
       <article class="panel panel-pad card">
-        <span class="metric-icon"><Building2 :size="18" /></span>
+        <span class="metric-icon success"><Building2 :size="18" /></span>
         <h2>Organización</h2>
         <dl>
           <div><dt>Administración</dt><dd>Centralizada por cadena, con gerentes por complejo</dd></div>
@@ -63,13 +63,13 @@ const version = __APP_VERSION__
 </template>
 
 <style scoped>
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 16px; }
 .card { display: grid; gap: 10px; align-content: start; }
-.card h2 { font: 700 17px var(--font-title); }
+.card h2 { font: 700 var(--text-l) var(--font-title); }
 dl { display: grid; gap: 10px; }
 dl div { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 dl div:last-child { border-bottom: 0; }
-dt { color: var(--muted); font-size: 12px; font-weight: 600; }
+dt { color: var(--muted); font-size: var(--text-xs); font-weight: 600; }
 dd { margin: 0; }
-code { font-size: 13px; }
+code { font-size: var(--text-s); overflow-wrap: anywhere; }
 </style>

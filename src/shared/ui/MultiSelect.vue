@@ -88,24 +88,24 @@ function onFocusOut(event: FocusEvent) {
 <style scoped>
 .control { position: relative; }
 .trigger { width: 100%; min-height: 40px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--field-border); border-radius: var(--radius-s); background: var(--surface); text-align: left; }
-.trigger:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(23, 78, 166, .18); }
+.trigger:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
 .trigger[aria-invalid='true'] { border-color: var(--danger); }
 .trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .placeholder { color: var(--muted); }
 .trigger svg { flex: none; color: var(--muted); }
 .menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; min-width: 240px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface); box-shadow: var(--shadow-float); }
 .list { max-height: 260px; overflow-y: auto; padding: 4px; }
-.option { padding: 7px 8px; display: flex; align-items: center; gap: 8px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+.option { padding: 7px 8px; display: flex; align-items: center; gap: 8px; border-radius: var(--radius-s); font-size: var(--text-m); cursor: pointer; }
 .option:hover { background: var(--selection); }
 .option input { width: 16px; height: 16px; flex: none; accent-color: var(--blue); }
 .option > span { flex: 1; }
-.option small { color: var(--muted); font-size: 12px; text-align: right; }
+.option small { color: var(--muted); font-size: var(--text-xs); text-align: right; }
 .option.off { opacity: .5; cursor: not-allowed; }
-.all { margin: 4px; border-bottom: 1px solid var(--line); border-radius: 6px 6px 0 0; font-weight: 600; }
+.all { margin: 4px; border-bottom: 1px solid var(--line); border-radius: var(--radius-s) var(--radius-s) 0 0; font-weight: 600; }
 .group { background: var(--surface-soft); font-weight: 600; }
 .nested { padding-left: 28px; }
 .footer { padding: 8px; display: flex; gap: 8px; border-top: 1px solid var(--line); }
 .footer :slotted(input) { flex: 1; min-width: 0; }
-.done { padding: 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-.empty-list { padding: 12px; color: var(--muted); font-size: 14px; }
+.done { padding: 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-s); }
+.empty-list { padding: 12px; color: var(--muted); font-size: var(--text-m); }
 </style>

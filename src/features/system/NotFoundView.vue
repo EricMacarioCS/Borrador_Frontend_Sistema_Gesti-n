@@ -19,6 +19,6 @@ const store = useSessionStore()
 <style scoped>
 .alone { min-height: 100dvh; padding: 24px; display: grid; place-items: center; }
 .alone .panel { width: min(100%, 480px); }
-h1 { font: 700 20px var(--font-title); color: var(--ink); }
+h1 { font: 700 var(--text-xl) var(--font-title); color: var(--ink); }
 svg { color: var(--blue); }
 </style>

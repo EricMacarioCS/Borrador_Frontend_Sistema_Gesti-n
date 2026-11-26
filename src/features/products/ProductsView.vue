@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { FolderPlus, PackageMinus, Pencil, Plus, Search } from '@lucide/vue'
+import { FolderPlus, PackageMinus, Pencil, Plus, Popcorn, Search } from '@lucide/vue'
 import CatalogEntryDialog from './CatalogEntryDialog.vue'
 import ProductDialog from './ProductDialog.vue'
 import { keys, useCatalog, useCategories, usePriceHistory, useProducts } from '@/app/queries'
@@ -10,11 +10,13 @@ import { useSessionStore } from '@/app/stores/session'
 import { STRUCTURE_LABELS } from '@/domain/labels'
 import type { CatalogEntry, Product } from '@/domain/models'
 import BaseDialog from '@/shared/ui/BaseDialog.vue'
+import RowMenu from '@/shared/ui/RowMenu.vue'
 import StateView from '@/shared/ui/StateView.vue'
 import { confirmAction, toast, toastError } from '@/shared/composables/feedback'
 import { formatDateTime } from '@/shared/lib/datetime'
 import { formatMoney } from '@/shared/lib/money'
 import { normalizeText } from '@/shared/lib/text'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 type Tab = 'catalog' | 'products' | 'history'
 
@@ -147,27 +149,28 @@ const createCategory = useMutation({
 
     <template v-if="tab === 'catalog'">
       <StateView :loading="catalog.isPending.value" :error="catalog.error.value" :empty="!entries.length" skeleton="rows"
-        empty-title="Sin productos en este catálogo" empty-text="Agrega productos de la cadena o cambia los filtros." @retry="catalog.refetch()">
+        empty-title="Sin productos en este catálogo" empty-text="Agrega productos de la cadena o cambia los filtros." :empty-icon="Popcorn"
+        :action-label="!catalog.data.value?.length && candidates.length ? 'Agregar el primer producto' : undefined" @action="entryDialog = { entry: null }" @retry="catalog.refetch()">
         <div class="panel table-wrap">
-          <table class="data">
+          <table v-table-roles class="data cards">
             <thead><tr><th>Producto</th><th>Categoría</th><th class="num">Precio aquí</th><th>Opciones activas</th><th>Disponible</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
             <tbody>
               <tr v-for="entry in entries" :key="entry.product.id" :class="{ 'row-off': !entry.available }">
                 <td><span class="stack"><strong>{{ entry.product.name }}</strong><small>{{ STRUCTURE_LABELS[entry.product.structure] }}{{ entry.product.requiresTicketCode ? ' · requiere folio' : ' · sin folio' }}</small></span></td>
-                <td>{{ entry.product.category.name }}</td>
-                <td class="num">{{ formatMoney(entry.priceCents) }}</td>
-                <td>{{ activeOptions(entry) }}</td>
-                <td>
+                <td data-label="Categoría">{{ entry.product.category.name }}</td>
+                <td data-label="Precio aquí" class="num">{{ formatMoney(entry.priceCents) }}</td>
+                <td data-label="Opciones activas">{{ activeOptions(entry) }}</td>
+                <td data-label="Disponible">
                   <button type="button" role="switch" class="switch" :aria-checked="entry.available" :disabled="toggling === entry.product.id"
                     :aria-label="`${entry.product.name} disponible en ${store.complexName(complexId)}`" @click="setAvailability.mutate(entry)">
                     <span class="track" aria-hidden="true"><span class="thumb" /></span>
-                    <span class="switch-label">{{ entry.available ? 'Disponible' : 'No disponible' }}</span>
+                    <span class="switch-label" :class="{ 'pill muted': !entry.available }">{{ entry.available ? 'Disponible' : 'No disponible' }}</span>
                   </button>
                 </td>
                 <td class="actions-col">
                   <div class="row-actions">
-                    <button type="button" class="action" :aria-label="`Editar ${entry.product.name}`" @click="entryDialog = { entry }"><Pencil :size="15" /> Precio y opciones</button>
-                    <button type="button" class="action danger" :aria-label="`Quitar ${entry.product.name} del catálogo`" @click="remove(entry)"><PackageMinus :size="15" /> Quitar</button>
+                    <button type="button" class="icon-btn" :aria-label="`Editar precio y opciones de ${entry.product.name}`" title="Precio y opciones" @click="entryDialog = { entry }"><Pencil :size="16" aria-hidden="true" /></button>
+                    <RowMenu :label="`Más acciones para ${entry.product.name}`" :items="[{ label: 'Quitar del catálogo', icon: PackageMinus, danger: true, run: () => remove(entry) }]" />
                   </div>
                 </td>
               </tr>
@@ -179,19 +182,19 @@ const createCategory = useMutation({
 
     <template v-else-if="tab === 'products'">
       <p v-if="!chainAdmin" class="notice small spaced">Solo el administrador de la cadena puede crear o modificar productos. Tú decides el catálogo de tus complejos.</p>
-      <StateView :loading="productsQuery.isPending.value" :error="productsQuery.error.value" :empty="!chainProducts.length" skeleton="rows" @retry="productsQuery.refetch()">
+      <StateView :loading="productsQuery.isPending.value" :error="productsQuery.error.value" :empty="!chainProducts.length" skeleton="rows" :empty-icon="Popcorn" @retry="productsQuery.refetch()">
         <div class="panel table-wrap">
-          <table class="data">
+          <table v-table-roles class="data cards">
             <thead><tr><th>Producto</th><th>Categoría</th><th>Estructura</th><th>Personalización</th><th>Folio</th><th class="num">Complejos</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
             <tbody>
               <tr v-for="product in chainProducts" :key="product.id">
                 <td><span class="stack"><strong>{{ product.name }}</strong><small>{{ product.description || 'Sin descripción' }}</small></span></td>
-                <td>{{ product.category.name }}</td>
-                <td>{{ STRUCTURE_LABELS[product.structure] }}</td>
-                <td><span class="tags"><span v-for="rule in product.rules" :key="rule.id" class="tag">{{ rule.title }} ({{ rule.options.length }})</span><span v-if="!product.rules.length" class="muted small">Sin opciones</span></span></td>
-                <td>{{ product.requiresTicketCode ? 'Requiere' : 'No' }}</td>
-                <td class="num">{{ product.complexCount }}</td>
-                <td class="actions-col"><button v-if="chainAdmin" type="button" class="action" :aria-label="`Editar ${product.name}`" @click="productDialog = { product }"><Pencil :size="15" /> Editar</button></td>
+                <td data-label="Categoría">{{ product.category.name }}</td>
+                <td data-label="Estructura">{{ STRUCTURE_LABELS[product.structure] }}</td>
+                <td data-label="Personalización"><span class="tags"><span v-for="rule in product.rules" :key="rule.id" class="tag">{{ rule.title }} ({{ rule.options.length }})</span><span v-if="!product.rules.length" class="muted small">Sin opciones</span></span></td>
+                <td data-label="Folio">{{ product.requiresTicketCode ? 'Requiere' : 'No' }}</td>
+                <td data-label="Complejos" class="num">{{ product.complexCount }}</td>
+                <td class="actions-col"><button v-if="chainAdmin" type="button" class="icon-btn" :aria-label="`Editar ${product.name}`" title="Editar" @click="productDialog = { product }"><Pencil :size="16" aria-hidden="true" /></button></td>
               </tr>
             </tbody>
           </table>
@@ -203,15 +206,15 @@ const createCategory = useMutation({
       <StateView :loading="history.isPending.value" :error="history.error.value" :empty="!history.data.value?.length" skeleton="rows"
         empty-title="Sin cambios de precio" empty-text="Cada cambio de precio en este complejo aparecerá aquí." @retry="history.refetch()">
         <div class="panel table-wrap">
-          <table class="data">
+          <table v-table-roles class="data cards">
             <thead><tr><th>Fecha</th><th>Producto</th><th class="num">Antes</th><th class="num">Después</th><th class="num">Cambio</th></tr></thead>
             <tbody>
               <tr v-for="change in history.data.value" :key="change.id">
-                <td>{{ formatDateTime(change.changedAt) }}</td>
-                <td><strong>{{ change.productName }}</strong></td>
-                <td class="num">{{ formatMoney(change.previousCents) }}</td>
-                <td class="num">{{ formatMoney(change.newCents) }}</td>
-                <td class="num">{{ change.newCents >= change.previousCents ? '+' : '−' }}{{ formatMoney(Math.abs(change.newCents - change.previousCents)) }}</td>
+                <td data-label="Fecha">{{ formatDateTime(change.changedAt) }}</td>
+                <td data-label="Producto"><strong>{{ change.productName }}</strong></td>
+                <td data-label="Antes" class="num">{{ formatMoney(change.previousCents) }}</td>
+                <td data-label="Después" class="num">{{ formatMoney(change.newCents) }}</td>
+                <td data-label="Cambio" class="num">{{ change.newCents >= change.previousCents ? '+' : '−' }}{{ formatMoney(Math.abs(change.newCents - change.previousCents)) }}</td>
               </tr>
             </tbody>
           </table>
@@ -237,12 +240,11 @@ const createCategory = useMutation({
 <style scoped>
 .toolbar .search svg { top: auto; bottom: 11px; transform: none; }
 .spaced { margin-bottom: 12px; }
-.switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: none; color: var(--ink); font: 600 13px var(--font-body); cursor: pointer; white-space: nowrap; }
+.switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: none; color: var(--ink); font: 600 var(--text-s) var(--font-body); cursor: pointer; white-space: nowrap; }
 .switch:disabled { cursor: progress; opacity: .6; }
-.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
-.track { position: relative; width: 36px; height: 20px; flex: none; border-radius: 999px; background: var(--line-strong); }
-.thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: var(--radius-s); }
+.track { position: relative; width: 36px; height: 20px; flex: none; border-radius: 999px; background: var(--field-border); }
+.thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-card); }
 .switch[aria-checked='true'] .track { background: var(--success); }
 .switch[aria-checked='true'] .thumb { left: 18px; }
-.switch[aria-checked='false'] .switch-label { color: var(--muted); }
 </style>

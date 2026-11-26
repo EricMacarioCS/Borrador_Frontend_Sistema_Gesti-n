@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2 } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Image, Pencil, Plus, Trash2 } from '@lucide/vue'
 import BannerDialog from './BannerDialog.vue'
 import { keys, useBanners, useFaq, useHomeContent, useMovies, usePages, usePurchaseRules } from '@/app/queries'
 import { useServices } from '@/app/services'
 import { useSessionStore } from '@/app/stores/session'
 import type { Banner, FaqItem, InfoPage, PurchaseRules } from '@/domain/models'
 import { movieStage } from '@/domain/rules'
+import RowMenu from '@/shared/ui/RowMenu.vue'
 import StateView from '@/shared/ui/StateView.vue'
 import { useDirtyGuard } from '@/shared/composables/dirty'
 import { confirmAction, toast, toastError } from '@/shared/composables/feedback'
 import { formatDate } from '@/shared/lib/datetime'
+import { vTableRoles } from '@/shared/ui/tableRoles'
 
 type Tab = 'home' | 'banners' | 'faq' | 'pages' | 'rules'
 const store = useSessionStore()
@@ -163,21 +165,21 @@ useDirtyGuard(() => homeDirty.value || faqDirty.value || pageDirty.value || rule
       </div>
     </StateView>
 
-    <StateView v-else-if="tab === 'banners'" :loading="banners.isPending.value" :error="banners.error.value" :empty="!banners.data.value?.length" skeleton="rows" empty-title="Sin banners" @retry="banners.refetch()">
+    <StateView v-else-if="tab === 'banners'" :loading="banners.isPending.value" :error="banners.error.value" :empty="!banners.data.value?.length" skeleton="rows" empty-title="Sin banners" :empty-icon="Image" action-label="Crear el primer banner" @action="bannerDialog = { banner: null }" @retry="banners.refetch()">
       <div class="panel table-wrap">
-        <table class="data">
+        <table v-table-roles class="data cards">
           <thead><tr><th>Banner</th><th>Enlace</th><th>Vigencia</th><th>Dónde</th><th>Estado</th><th class="actions-col"><span class="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
-            <tr v-for="b in banners.data.value" :key="b.id">
+            <tr v-for="b in banners.data.value" :key="b.id" :class="{ 'row-off': ['Inactivo', 'Vencido'].includes(bannerState(b).label) }">
               <td><span class="stack"><strong>{{ b.title }}</strong><small>{{ b.imageUrl }}</small></span></td>
-              <td>{{ b.targetUrl }}</td>
-              <td>{{ formatDate(b.startsOn, 'short') }} – {{ b.endsOn ? formatDate(b.endsOn, 'short') : 'sin fin' }}</td>
-              <td>{{ b.appliesToAll ? 'Toda la cadena' : b.complexIds.map(store.complexName).join(', ') }}</td>
-              <td><span class="pill" :class="bannerState(b).tone">{{ bannerState(b).label }}</span></td>
+              <td data-label="Enlace">{{ b.targetUrl }}</td>
+              <td data-label="Vigencia">{{ formatDate(b.startsOn, 'short') }} – {{ b.endsOn ? formatDate(b.endsOn, 'short') : 'sin fin' }}</td>
+              <td data-label="Dónde">{{ b.appliesToAll ? 'Toda la cadena' : b.complexIds.map(store.complexName).join(', ') }}</td>
+              <td data-label="Estado"><span class="pill" :class="bannerState(b).tone">{{ bannerState(b).label }}</span></td>
               <td class="actions-col">
                 <div class="row-actions">
-                  <button type="button" class="action" :aria-label="`Editar ${b.title}`" @click="bannerDialog = { banner: b }"><Pencil :size="15" /> Editar</button>
-                  <button type="button" class="action danger" :aria-label="`Eliminar ${b.title}`" @click="deleteBanner(b)"><Trash2 :size="15" /> Eliminar</button>
+                  <button type="button" class="icon-btn" :aria-label="`Editar ${b.title}`" title="Editar" @click="bannerDialog = { banner: b }"><Pencil :size="16" aria-hidden="true" /></button>
+                  <RowMenu :label="`Más acciones para ${b.title}`" :items="[{ label: 'Eliminar', icon: Trash2, danger: true, run: () => deleteBanner(b) }]" />
                 </div>
               </td>
             </tr>
@@ -243,12 +245,13 @@ useDirtyGuard(() => homeDirty.value || faqDirty.value || pageDirty.value || rule
 
 <style scoped>
 .section { display: grid; gap: 14px; }
-.section h2 { font: 700 17px var(--font-title); }
+.section h2 { font: 700 var(--text-l) var(--font-title); }
 .featured { display: grid; gap: 6px; }
 .featured li { padding: 8px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-s); }
 .featured strong { flex: 1; }
-.n { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-weight: 700; font-size: 13px; }
-.add { display: flex; gap: 8px; max-width: 520px; }
+.n { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-weight: 700; font-size: var(--text-s); }
+.add { display: flex; flex-wrap: wrap; gap: 8px; max-width: 520px; }
+.add .select { flex: 1 1 200px; width: auto; }
 .save { display: flex; justify-content: flex-end; }
 .faq { padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 12px; align-items: start; border: 1px solid var(--line); border-radius: var(--radius-s); }
 .narrow { max-width: 360px; }

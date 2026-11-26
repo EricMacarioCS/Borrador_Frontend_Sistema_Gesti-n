@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { CalendarPlus, Pencil, Plus, Search, Trash2 } from '@lucide/vue'
+import { CalendarPlus, Clapperboard, Pencil, Plus, Search, Trash2 } from '@lucide/vue'
 import MovieDialog from './MovieDialog.vue'
 import { keys, useMovies } from '@/app/queries'
 import { useServices } from '@/app/services'
@@ -9,6 +9,7 @@ import { useSessionStore } from '@/app/stores/session'
 import { STAGE_LABELS } from '@/domain/labels'
 import type { Movie, MovieStage } from '@/domain/models'
 import { movieStage } from '@/domain/rules'
+import RowMenu from '@/shared/ui/RowMenu.vue'
 import StateView from '@/shared/ui/StateView.vue'
 import { confirmAction, toast, toastError } from '@/shared/composables/feedback'
 import { formatDate } from '@/shared/lib/datetime'
@@ -85,7 +86,8 @@ async function retire(movie: Movie) {
     </div>
 
     <StateView :loading="movies.isPending.value" :error="movies.error.value" :empty="!shown.length" skeleton="cards"
-      empty-title="No hay películas con estos criterios" @retry="movies.refetch()">
+      empty-title="No hay películas con estos criterios" :empty-icon="Clapperboard"
+      :action-label="!movies.data.value?.length ? 'Agregar la primera película' : undefined" @action="open(null)" @retry="movies.refetch()">
       <ul class="grid" role="list">
         <li v-for="movie in shown" :key="movie.id" class="panel card">
           <div class="art" :style="{ '--hue': hashHue(movie.title) }" aria-hidden="true">
@@ -106,9 +108,12 @@ async function retire(movie: Movie) {
               <RouterLink v-if="store.can('screenings.manage') && stageOf(movie) !== 'finished'" :to="{ path: '/funciones/programar', query: { pelicula: movie.id } }" class="btn btn-secondary btn-small">
                 <CalendarPlus :size="15" /> Programar
               </RouterLink>
-              <button type="button" class="action" :aria-label="`Editar ${movie.title}`" @click="open(movie)"><Pencil :size="15" /> Editar</button>
-              <button type="button" class="action danger" :aria-label="`Retirar ${movie.title}`" :disabled="movie.upcomingScreenings > 0"
-                :title="movie.upcomingScreenings ? 'Tiene funciones programadas' : undefined" @click="retire(movie)"><Trash2 :size="15" /> Retirar</button>
+              <span class="row-actions end">
+                <button type="button" class="icon-btn" :aria-label="`Editar ${movie.title}`" title="Editar" @click="open(movie)"><Pencil :size="16" aria-hidden="true" /></button>
+                <RowMenu :label="`Más acciones para ${movie.title}`" :items="[{
+                  label: 'Retirar', icon: Trash2, danger: true, disabled: movie.upcomingScreenings > 0, hint: 'Tiene funciones programadas', run: () => retire(movie)
+                }]" />
+              </span>
             </div>
           </div>
         </li>
@@ -122,13 +127,14 @@ async function retire(movie: Movie) {
 <style scoped>
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .card { overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
-.art { position: relative; height: 120px; display: grid; place-items: center; background: linear-gradient(135deg, hsl(var(--hue) 55% 38%), var(--navy-950)); color: rgba(255, 255, 255, .85); }
-.initials { font: 800 40px var(--font-title); letter-spacing: .04em; }
-.rating { position: absolute; top: 10px; left: 10px; padding: 1px 7px; border-radius: 5px; background: rgba(255, 255, 255, .92); color: var(--ink); font: 700 12px var(--font-body); }
+.art { position: relative; height: 120px; display: grid; place-items: center; background: hsl(var(--hue) var(--art-tone)); color: var(--on-dark); }
+.initials { font: 800 var(--text-2xl) var(--font-title); letter-spacing: .04em; }
+.rating { position: absolute; top: 10px; left: 10px; padding: 1px 7px; border-radius: var(--radius-s); background: var(--surface); color: var(--ink); font: 700 var(--text-xs) var(--font-body); }
 .body { padding: 14px 16px 16px; display: grid; gap: 6px; align-content: start; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-h2 { font: 700 17px var(--font-title); }
-.meta { color: var(--muted); font-size: 13px; }
+h2 { font: 700 var(--text-l) var(--font-title); }
+.meta { color: var(--muted); font-size: var(--text-s); }
 .meta strong { color: var(--ink); }
 .actions { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.end { margin-left: auto; }
 </style>
