@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { readFileSync } from 'node:fs'
 import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
-import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
   const target = env.VITE_PROXY_TARGET
 
   return {
-    plugins: [vue()],
+    plugins: [react()],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version)
     },
@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'happy-dom',
       environmentOptions: { happyDOM: { url: 'http://localhost:5174/' } },
-      include: ['src/**/*.test.ts'],
+      include: ['src/**/*.test.{ts,tsx}'],
       restoreMocks: true
     }
   }

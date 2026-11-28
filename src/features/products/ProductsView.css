@@ -1,0 +1,10 @@
+.products-view .toolbar .search svg { top: auto; bottom: 11px; transform: none; }
+.products-view .spaced { margin-bottom: 12px; }
+.products-view .switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: none; color: var(--ink); font: 600 13px var(--font-body); cursor: pointer; white-space: nowrap; }
+.products-view .switch:disabled { cursor: progress; opacity: .6; }
+.products-view .switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
+.products-view .track { position: relative; width: 36px; height: 20px; flex: none; border-radius: 999px; background: var(--line-strong); }
+.products-view .thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.products-view .switch[aria-checked='true'] .track { background: var(--success); }
+.products-view .switch[aria-checked='true'] .thumb { left: 18px; }
+.products-view .switch[aria-checked='false'] .switch-label { color: var(--muted); }

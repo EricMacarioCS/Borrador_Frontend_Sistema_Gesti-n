@@ -1,9 +1,8 @@
 /**
- * Lecturas al servidor con caché (TanStack Query). Las vistas usan estos composables y nunca leen
+ * Lecturas al servidor con caché (TanStack Query). Las vistas usan estos hooks y nunca leen
  * de los puertos directamente; las escrituras invalidan las claves de aquí.
  */
-import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { keepPreviousData, useQuery } from '@tanstack/vue-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { ScreeningQuery } from '@/domain/ports'
 import { useServices } from './services'
 
@@ -37,31 +36,31 @@ export function useMovies() {
   return useQuery({ queryKey: keys.movies(), queryFn: ({ signal }) => movies.list(signal) })
 }
 
-export function useScreenings(query: MaybeRefOrGetter<ScreeningQuery>) {
+export function useScreenings(query: ScreeningQuery) {
   const { screenings } = useServices()
   return useQuery({
-    queryKey: computed(() => keys.screenings(toValue(query))),
-    queryFn: ({ signal }) => screenings.list(toValue(query), signal),
+    queryKey: keys.screenings(query),
+    queryFn: ({ signal }) => screenings.list(query, signal),
     placeholderData: keepPreviousData
   })
 }
 
-export function useRooms(complexId: MaybeRefOrGetter<string | null>) {
+export function useRooms(complexId: string | null) {
   const { complexes } = useServices()
   return useQuery({
-    queryKey: computed(() => keys.rooms(toValue(complexId) ?? '')),
-    queryFn: ({ signal }) => complexes.listRooms(toValue(complexId)!, signal),
-    enabled: computed(() => Boolean(toValue(complexId))),
+    queryKey: keys.rooms(complexId ?? ''),
+    queryFn: ({ signal }) => complexes.listRooms(complexId!, signal),
+    enabled: Boolean(complexId),
     staleTime: 5 * 60_000
   })
 }
 
-export function useSeatTemplate(roomId: MaybeRefOrGetter<string | null>) {
+export function useSeatTemplate(roomId: string | null) {
   const { complexes } = useServices()
   return useQuery({
-    queryKey: computed(() => keys.seatTemplate(toValue(roomId) ?? '')),
-    queryFn: ({ signal }) => complexes.getSeatTemplate(toValue(roomId)!, signal),
-    enabled: computed(() => Boolean(toValue(roomId))),
+    queryKey: keys.seatTemplate(roomId ?? ''),
+    queryFn: ({ signal }) => complexes.getSeatTemplate(roomId!, signal),
+    enabled: Boolean(roomId),
     staleTime: 0
   })
 }
@@ -71,12 +70,12 @@ export function useTicketTypes() {
   return useQuery({ queryKey: keys.ticketTypes(), queryFn: ({ signal }) => prices.listTicketTypes(signal), staleTime: 5 * 60_000 })
 }
 
-export function usePriceSheet(complexId: MaybeRefOrGetter<string | null>) {
+export function usePriceSheet(complexId: string | null) {
   const { prices } = useServices()
   return useQuery({
-    queryKey: computed(() => keys.priceSheet(toValue(complexId) ?? '')),
-    queryFn: ({ signal }) => prices.getSheet(toValue(complexId)!, signal),
-    enabled: computed(() => Boolean(toValue(complexId))),
+    queryKey: keys.priceSheet(complexId ?? ''),
+    queryFn: ({ signal }) => prices.getSheet(complexId!, signal),
+    enabled: Boolean(complexId),
     staleTime: 0,
     // Con cambios sin guardar no conviene reemplazar lo que se edita al volver a la pestaña.
     refetchOnWindowFocus: false
@@ -93,22 +92,22 @@ export function useProducts() {
   return useQuery({ queryKey: keys.products(), queryFn: ({ signal }) => products.list(signal) })
 }
 
-export function useCatalog(complexId: MaybeRefOrGetter<string | null>) {
+export function useCatalog(complexId: string | null) {
   const { products } = useServices()
   return useQuery({
-    queryKey: computed(() => keys.catalog(toValue(complexId) ?? '')),
-    queryFn: ({ signal }) => products.catalog(toValue(complexId)!, signal),
-    enabled: computed(() => Boolean(toValue(complexId))),
+    queryKey: keys.catalog(complexId ?? ''),
+    queryFn: ({ signal }) => products.catalog(complexId!, signal),
+    enabled: Boolean(complexId),
     placeholderData: keepPreviousData
   })
 }
 
-export function usePriceHistory(complexId: MaybeRefOrGetter<string | null>, enabled: MaybeRefOrGetter<boolean>) {
+export function usePriceHistory(complexId: string | null, enabled: boolean) {
   const { products } = useServices()
   return useQuery({
-    queryKey: computed(() => keys.priceHistory(toValue(complexId) ?? '')),
-    queryFn: ({ signal }) => products.priceHistory(toValue(complexId)!, signal),
-    enabled: computed(() => Boolean(toValue(complexId)) && toValue(enabled))
+    queryKey: keys.priceHistory(complexId ?? ''),
+    queryFn: ({ signal }) => products.priceHistory(complexId!, signal),
+    enabled: Boolean(complexId) && enabled
   })
 }
 

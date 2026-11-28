@@ -1,0 +1,5 @@
+.catalog-form .rule { border: 1px solid var(--line); border-radius: var(--radius-s); overflow: hidden; }
+.catalog-form .rule h4 { padding: 10px 14px; background: var(--surface-soft); font: 700 14px var(--font-title); }
+.catalog-form .rule h4 small { color: var(--muted); font: 400 12px var(--font-body); }
+.catalog-form .rule td { padding: 6px 14px; }
+.catalog-form .rule input[type='checkbox'] { width: 17px; height: 17px; accent-color: var(--blue); }

@@ -1,0 +1,10 @@
+.screenings-view .filters { margin-bottom: 12px; padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 14px; }
+.screenings-view .filters .field { min-width: 150px; }
+.screenings-view .filters .grow { flex: 1 1 220px; }
+.screenings-view .filters .search svg { top: auto; bottom: 11px; transform: none; }
+.screenings-view .presets { display: flex; gap: 4px; }
+.screenings-view .summary { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
+.screenings-view .day th { padding: 10px 14px; background: var(--selection); color: var(--blue); font: 700 13px var(--font-title); text-transform: none; letter-spacing: 0; }
+.screenings-view .time { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+.screenings-view .time small { color: var(--muted); font-weight: 400; }
+.screenings-view td input[type='checkbox'], .screenings-view th input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--blue); }

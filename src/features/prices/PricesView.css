@@ -1,0 +1,7 @@
+.prices-view .calc { margin-bottom: 16px; display: grid; gap: 14px; }
+.prices-view .calc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.prices-view .calc-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.prices-view .matrix td { min-width: 130px; }
+.prices-view .matrix td:first-child { min-width: 190px; }
+.prices-view .spaced { margin-bottom: 12px; }
+.prices-view .spaced-top { margin-top: 10px; }

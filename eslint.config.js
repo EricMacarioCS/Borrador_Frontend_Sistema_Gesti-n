@@ -1,24 +1,21 @@
-import pluginVue from 'eslint-plugin-vue'
+import js from '@eslint/js'
 import globals from 'globals'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import reactHooks from 'eslint-plugin-react-hooks'
+import tseslint from 'typescript-eslint'
 
-export default defineConfigWithVueTs(
+export default tseslint.config(
   { ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'public/**'] },
-  pluginVue.configs['flat/recommended'],
-  vueTsConfigs.recommendedTypeChecked,
+  js.configs.recommended,
+  tseslint.configs.recommendedTypeChecked,
   {
-    languageOptions: { globals: { ...globals.browser } },
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: { ...globals.browser },
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname }
+    },
+    plugins: { 'react-hooks': reactHooks },
     rules: {
-      'vue/multi-word-component-names': 'off',
-      'vue/max-attributes-per-line': 'off',
-      'vue/singleline-html-element-content-newline': 'off',
-      'vue/html-self-closing': 'off',
-      // El formato lo define el equipo (por ejemplo con Prettier); aquí solo se revisa calidad.
-      'vue/html-indent': 'off',
-      'vue/first-attribute-linebreak': 'off',
-      'vue/html-closing-bracket-newline': 'off',
-      'vue/multiline-html-element-content-newline': 'off',
-      'vue/no-v-html': 'error',
+      ...reactHooks.configs.recommended.rules,
       'no-restricted-imports': ['error', {
         patterns: [{
           group: ['@/mocks/*', '**/mocks/*'],
@@ -26,15 +23,22 @@ export default defineConfigWithVueTs(
         }]
       }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
-      '@typescript-eslint/consistent-type-imports': 'error'
+      '@typescript-eslint/consistent-type-imports': 'error',
+      // Los manejadores de eventos de React aceptan funciones asíncronas.
+      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }]
     }
   },
   {
-    files: ['src/app/services.ts', 'src/mocks/**', 'src/**/*.test.ts'],
+    files: ['src/app/services.ts', 'src/mocks/**', 'src/**/*.test.{ts,tsx}'],
     rules: { 'no-restricted-imports': 'off' }
   },
   {
-    files: ['eslint.config.js', 'vite.config.ts'],
+    files: ['eslint.config.js'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: { ...globals.node } }
+  },
+  {
+    files: ['vite.config.ts'],
     languageOptions: { globals: { ...globals.node } }
   }
 )

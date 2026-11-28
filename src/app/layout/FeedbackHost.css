@@ -1,0 +1,11 @@
+.toasts { position: fixed; right: 20px; bottom: 20px; z-index: 3000; display: grid; gap: 10px; width: min(440px, calc(100vw - 40px)); }
+.toasts .toast { padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 12px; border-radius: var(--radius-l); background: var(--navy-950); color: #fff; box-shadow: var(--shadow-float); }
+.toasts .icon { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #22a06b; }
+.toasts .error .icon { background: #dc3b2f; }
+.toasts .info .icon { background: var(--blue); }
+.toasts .text { flex: 1; font-size: 14px; }
+.toasts .undo { padding: 6px 10px; border: 1px solid rgba(255, 255, 255, .35); border-radius: var(--radius-s); background: transparent; color: #fff; font-weight: 600; font-size: 13px; }
+.toasts .undo:hover { background: rgba(255, 255, 255, .12); }
+.toasts .close { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #b8c7dd; }
+.toasts .close:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.confirm-text { color: var(--muted); }

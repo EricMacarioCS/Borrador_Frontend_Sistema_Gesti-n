@@ -1,0 +1,12 @@
+.content-view .section { display: grid; gap: 14px; }
+.content-view .section h2 { font: 700 17px var(--font-title); }
+.content-view .featured { display: grid; gap: 6px; }
+.content-view .featured li { padding: 8px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-s); }
+.content-view .featured strong { flex: 1; }
+.content-view .n { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-weight: 700; font-size: 13px; }
+.content-view .add { display: flex; gap: 8px; max-width: 520px; }
+.content-view .save { display: flex; justify-content: flex-end; }
+.content-view .faq { padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 12px; align-items: start; border: 1px solid var(--line); border-radius: var(--radius-s); }
+.content-view .narrow { max-width: 360px; }
+.content-view .tall { min-height: 260px; }
+@media (max-width: 900px) { .faq { grid-template-columns: minmax(0, 1fr); } }

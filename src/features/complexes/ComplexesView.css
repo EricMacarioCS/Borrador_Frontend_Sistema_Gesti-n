@@ -1,0 +1,11 @@
+.complexes-view .spaced { margin-bottom: 20px; }
+.complexes-view .city { margin-top: 18px; }
+.complexes-view .city h2 { margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: var(--blue); font: 700 15px var(--font-title); text-transform: uppercase; letter-spacing: .06em; }
+.complexes-view .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.complexes-view .card { padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.complexes-view .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.complexes-view .top h3 { font: 700 17px var(--font-title); }
+.complexes-view .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px 0; border-block: 1px solid var(--line); }
+.complexes-view .stats dt { color: var(--muted); font-size: 12px; }
+.complexes-view .stats dd { margin: 0; font: 700 16px var(--font-title); }
+.complexes-view .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

@@ -1,0 +1,24 @@
+.seat-template { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.seat-template .tools { display: grid; gap: 14px; }
+.seat-template .brushes { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.seat-template .brushes legend { margin-bottom: 6px; }
+.seat-template .brushes i, .seat-template .seat { width: 18px; height: 18px; border-radius: 4px 4px 6px 6px; border: 1px solid transparent; }
+.seat-template .brushes i { display: inline-block; }
+.seat-template .k-standard i, .seat-template .seat.k-standard { background: #c9d8ee; }
+.seat-template .k-premium i, .seat-template .seat.k-premium { background: #7c5cff; }
+.seat-template .k-accessible i, .seat-template .seat.k-accessible { background: #0e9f6e; }
+.seat-template .k-companion i, .seat-template .seat.k-companion { background: #f59e0b; }
+.seat-template .k-aisle i, .seat-template .seat.k-aisle { background: transparent; border: 1px dashed var(--line-strong); }
+.seat-template .stepper { display: flex; align-items: center; gap: 6px; }
+.seat-template .stepper strong { min-width: 32px; text-align: center; }
+.seat-template .totals { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 13px; }
+.seat-template .totals div { display: contents; }
+.seat-template .totals dt { color: var(--muted); }
+.seat-template .totals dd { margin: 0; font-weight: 700; text-align: right; }
+.seat-template .map { overflow: auto; padding: 16px; border-radius: var(--radius-l); background: var(--navy-950); }
+.seat-template .screen { margin: 0 auto 18px; width: 70%; padding: 4px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: linear-gradient(180deg, #e8f1ff, #9cb9e6); color: var(--navy-950); font: 700 11px var(--font-title); letter-spacing: .3em; text-align: center; }
+.seat-template .row { width: max-content; margin: 0 auto 4px; display: flex; align-items: center; gap: 4px; }
+.seat-template .label { width: 22px; color: #9fb3d1; font: 700 11px var(--font-title); text-align: center; }
+.seat-template .seat { padding: 0; cursor: pointer; }
+.seat-template .seat:hover { outline: 2px solid var(--accent); }
+@media (max-width: 900px) { .seat-template { grid-template-columns: minmax(0, 1fr); } }

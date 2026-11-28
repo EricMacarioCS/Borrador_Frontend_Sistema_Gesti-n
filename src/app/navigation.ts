@@ -1,7 +1,7 @@
-import type { Component } from 'vue'
+import type { LucideIcon } from 'lucide-react'
 import {
   BadgePercent, Building2, CalendarDays, Clapperboard, LayoutDashboard, PanelsTopLeft, Popcorn, Settings, Tags, Users
-} from '@lucide/vue'
+} from 'lucide-react'
 import type { Permission } from '@/domain/models'
 
 export interface NavItem {
@@ -9,7 +9,7 @@ export interface NavItem {
   path: string
   label: string
   group: string
-  icon: Component
+  icon: LucideIcon
   permission: Permission
 }
 

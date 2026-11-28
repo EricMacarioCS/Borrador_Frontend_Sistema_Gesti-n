@@ -1,0 +1,5 @@
+.promotions-view .spaced { margin-bottom: 12px; }
+.promotions-view .levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.promotions-view .level { display: grid; gap: 6px; justify-items: start; }
+.promotions-view .level h2 { font: 700 18px var(--font-title); }
+.promotions-view code { font-size: 12px; }

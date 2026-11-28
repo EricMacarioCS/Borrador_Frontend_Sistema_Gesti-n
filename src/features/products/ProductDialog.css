@@ -1,0 +1,8 @@
+.product-form .rule { padding: 14px; display: grid; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--surface-soft); }
+.product-form .rule-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.product-form .rule-head .grow { flex: 1 1 240px; }
+.product-form .small-field { width: 90px; }
+.product-form .options { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-s); }
+.product-form .options td { padding: 6px 8px; }
+.product-form .options td input[type='checkbox'] { width: 17px; height: 17px; accent-color: var(--blue); }
+.product-form .problems { padding-left: 30px; }

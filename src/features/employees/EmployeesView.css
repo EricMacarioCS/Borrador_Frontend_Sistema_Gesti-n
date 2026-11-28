@@ -1,0 +1,4 @@
+.employees-view .toolbar .search svg { top: auto; bottom: 11px; transform: none; }
+.employees-view .spaced { margin-bottom: 12px; }
+.employees-view .person { display: flex; align-items: center; gap: 10px; }
+.employees-view .avatar { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--selection); color: var(--blue); font-size: 12px; font-weight: 700; }

@@ -1,0 +1,9 @@
+.settings-view .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.settings-view .card { display: grid; gap: 10px; align-content: start; }
+.settings-view .card h2 { font: 700 17px var(--font-title); }
+.settings-view dl { display: grid; gap: 10px; }
+.settings-view dl div { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.settings-view dl div:last-child { border-bottom: 0; }
+.settings-view dt { color: var(--muted); font-size: 12px; font-weight: 600; }
+.settings-view dd { margin: 0; }
+.settings-view code { font-size: 13px; }

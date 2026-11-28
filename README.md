@@ -2,7 +2,7 @@
 
 Borrador del **sistema de gestión** de Cinépolis, basado en el prototipo de administración y en el diagrama de la base de datos. Lo usan el administrador (toda la cadena) y el personal con cuenta asignada a un complejo para manejar cartelera, funciones, dulcería, tarifas, promociones, contenido del sitio y personal. No maneja ventas, ingresos, pedidos ni inventario: las ventas las registran el sitio web y la taquilla.
 
-Es solo el **frontend**. Mientras no exista el backend, trae un **backend simulado** que corre en el navegador y responde el contrato JSON acordado; al conectar el API real se cambia la configuración, no el código.
+Es solo el **frontend**, hecho con React 19, React Router, TanStack Query, Zustand y lucide-react (iconos) sobre Vite y TypeScript. Mientras no exista el backend, trae un **backend simulado** que corre en el navegador y responde el contrato JSON acordado; al conectar el API real se cambia la configuración, no el código.
 
 > Proyecto académico, sin relación comercial con Cinépolis. Los datos de ejemplo son ficticios.
 
@@ -25,8 +25,8 @@ npm run check      # lint + tipos + pruebas + compilación (lo mismo que corre C
 | `npm run build` | Revisa tipos y compila a `dist/`. |
 | `npm run preview` | Sirve `dist/` para revisar la compilación. |
 | `npm test` / `npm run test:watch` | Pruebas con Vitest. |
-| `npm run lint` / `npm run lint:fix` | ESLint (Vue + TypeScript con reglas de tipos). |
-| `npm run typecheck` | `vue-tsc` sobre la app, las pruebas y la configuración. |
+| `npm run lint` / `npm run lint:fix` | ESLint (TypeScript con reglas de tipos y reglas de hooks de React). |
+| `npm run typecheck` | `tsc --build` sobre la app, las pruebas y la configuración. |
 
 ### Cuentas de demostración (solo en modo simulado)
 
@@ -59,12 +59,12 @@ Los datos simulados se guardan en el navegador (`localStorage`, clave `cp-admin-
 
 ```
 src/
-  app/          Arranque, configuración, rutas con permisos, consultas (TanStack Query), sesión (Pinia), menú
+  app/          Arranque, configuración, rutas con permisos, consultas (TanStack Query), sesión (Zustand), menú
   domain/       Modelos, puertos, reglas puras y textos: lo único que conocen las vistas
   adapters/http Esquemas zod del contrato, conversores y adaptadores
   mocks/        Backend simulado (solo se descarga en modo mock)
   features/     Una carpeta por módulo
-  shared/       Utilidades (dinero, fechas, HTTP, errores) y componentes base (ventanas, selección múltiple, importes)
+  shared/       Utilidades (dinero, fechas, HTTP, errores), hooks (borradores, avisos) y componentes base (ventanas, selección múltiple, importes)
 ```
 
 Decisiones que facilitan conectar el backend:

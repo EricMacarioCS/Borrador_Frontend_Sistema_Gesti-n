@@ -1,0 +1,11 @@
+.movies-view .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.movies-view .card { overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+.movies-view .art { position: relative; height: 120px; display: grid; place-items: center; background: linear-gradient(135deg, hsl(var(--hue) 55% 38%), var(--navy-950)); color: rgba(255, 255, 255, .85); }
+.movies-view .initials { font: 800 40px var(--font-title); letter-spacing: .04em; }
+.movies-view .rating { position: absolute; top: 10px; left: 10px; padding: 1px 7px; border-radius: 5px; background: rgba(255, 255, 255, .92); color: var(--ink); font: 700 12px var(--font-body); }
+.movies-view .body { padding: 14px 16px 16px; display: grid; gap: 6px; align-content: start; }
+.movies-view .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.movies-view h2 { font: 700 17px var(--font-title); }
+.movies-view .meta { color: var(--muted); font-size: 13px; }
+.movies-view .meta strong { color: var(--ink); }
+.movies-view .actions { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }

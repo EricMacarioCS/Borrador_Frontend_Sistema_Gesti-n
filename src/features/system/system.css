@@ -1,0 +1,4 @@
+.system-alone { min-height: 100dvh; padding: 24px; display: grid; place-items: center; }
+.system-alone .panel { width: min(100%, 480px); }
+.system-view h1 { font: 700 20px var(--font-title); color: var(--ink); }
+.system-view svg { color: var(--blue); }

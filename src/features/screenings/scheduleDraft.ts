@@ -1,5 +1,5 @@
 /** Borrador de programación. Se conserva al consultar otros módulos y se descarta al recargar la página. */
-import { reactive } from 'vue'
+import { create } from 'zustand'
 import type { ScheduleRequest } from '@/domain/models'
 
 const blank = () => ({
@@ -17,13 +17,20 @@ const blank = () => ({
   excluded: [] as string[]
 })
 
-export const draft = reactive(blank())
+export type ScheduleDraft = ReturnType<typeof blank>
 
-export function resetDraft() {
-  Object.assign(draft, blank())
+interface DraftStore extends ScheduleDraft {
+  patch: (changes: Partial<ScheduleDraft>) => void
+  reset: () => void
 }
 
-export function toRequest(): ScheduleRequest {
+export const useScheduleDraft = create<DraftStore>()(set => ({
+  ...blank(),
+  patch: changes => set(changes),
+  reset: () => set(blank())
+}))
+
+export function toRequest(draft: ScheduleDraft): ScheduleRequest {
   return {
     movieIds: [...draft.movieIds], languages: [...draft.languages], complexIds: [...draft.complexIds], roomTypes: [...draft.roomTypes],
     projections: [...draft.projections], roomIds: [...draft.roomIds], dates: [...draft.dates].sort(), times: [...draft.times].sort()

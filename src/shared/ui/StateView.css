@@ -1,0 +1,10 @@
+.state-view .message { padding: 48px 20px; display: grid; justify-items: center; gap: 10px; text-align: center; border: 1px dashed var(--line-strong); border-radius: var(--radius-l); background: rgba(255, 255, 255, .7); }
+.state-view .message svg { color: var(--blue); }
+.state-view .message h2 { font: 800 20px var(--font-title); }
+.state-view .message p { color: var(--muted); max-width: 52ch; }
+.state-view .message small { color: var(--muted); }
+.state-view .skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 18px; }
+.state-view .card-skeleton { aspect-ratio: 2 / 3.4; }
+.state-view .skeleton-rows { display: grid; gap: 12px; }
+.state-view .row-skeleton { height: 96px; }
+.state-view .block-skeleton { height: 320px; }
